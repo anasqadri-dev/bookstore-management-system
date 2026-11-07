@@ -1,1 +1,44 @@
 *.docx
+
+# Java / Maven
+**/target/
+*.class
+*.log
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Node.js
+**/node_modules/
+
+# Next.js
+**/.next/
+**/out/
+
+# Electron build output
+**/dist/
+**/release/
+
+# Test coverage
+**/coverage/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
