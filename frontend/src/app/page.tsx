@@ -2,28 +2,19 @@
 "use client";
 
 import { useState } from "react";
-import {
-    LayoutDashboard,
-    BookOpen,
-    ShoppingCart,
-    Truck,
-    GraduationCap,
-    BarChart3,
-    Settings,
-    UserRound,
-} from "lucide-react";
+import BooksInventory from "../components/BooksInventory";
 
 export default function Home() {
     const [activePage, setActivePage] = useState("Dashboard");
 
     const menu = [
-        { name: "Dashboard", icon: LayoutDashboard },
-        { name: "Books Inventory", icon: BookOpen },
-        { name: "Sales / POS", icon: ShoppingCart },
-        { name: "Suppliers", icon: Truck },
-        { name: "School Orders", icon: GraduationCap },
-        { name: "Reports", icon: BarChart3 },
-        { name: "Settings", icon: Settings },
+        { name: "Dashboard", icon: "▦" },
+        { name: "Books Inventory", icon: "▤" },
+        { name: "Sales / POS", icon: "🛒" },
+        { name: "Suppliers", icon: "▱" },
+        { name: "School Orders", icon: "♧" },
+        { name: "Reports", icon: "▥" },
+        { name: "Settings", icon: "⚙" },
     ];
 
     const stats = [
@@ -34,62 +25,67 @@ export default function Home() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#eeeeee] text-black md:flex">
+        <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex">
 
             {/* Sidebar */}
-            <aside className="border-b border-gray-400 bg-[#eeeeee] p-5 md:min-h-screen md:w-64 md:shrink-0 md:border-b-0 md:border-r">
-                <h1 className="text-2xl font-semibold">Qadri Books</h1>
-                <p className="mt-1 text-sm">Management System</p>
+            <aside className="bg-[#030712] p-6 text-white md:min-h-screen md:w-[320px] md:shrink-0">
+                <h1 className="text-2xl font-bold">Qadri Books</h1>
+                <p className="mt-2 text-sm text-gray-400">
+                    Management System
+                </p>
 
-                <nav className="mt-8 flex gap-2 overflow-x-auto md:block md:space-y-2">
-                    {menu.map((item) => {
-                        const Icon = item.icon;
-
-                        return (
-                            <button
-                                key={item.name}
-                                onClick={() => setActivePage(item.name)}
-                                className={`flex shrink-0 items-center gap-3 rounded px-3 py-3 text-left text-sm md:w-full ${
-                                    activePage === item.name
-                                        ? "bg-blue-600 text-white"
-                                        : "text-black hover:bg-gray-200"
-                                }`}
-                            >
-                                <Icon size={18} />
-                                {item.name}
-                            </button>
-                        );
-                    })}
+                <nav className="mt-10 space-y-2">
+                    {menu.map((item) => (
+                        <button
+                            key={item.name}
+                            onClick={() => setActivePage(item.name)}
+                            className={`flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm transition ${
+                                activePage === item.name
+                                    ? "bg-slate-700 text-white"
+                                    : "text-gray-300 hover:bg-slate-800"
+                            }`}
+                        >
+                            <span className="w-5 text-xl">{item.icon}</span>
+                            {item.name}
+                        </button>
+                    ))}
                 </nav>
             </aside>
 
             {/* Main Content */}
-            <main className="min-w-0 flex-1 p-5 md:p-8">
-                <header className="mb-8 flex items-center justify-between gap-4">
+            <main className="min-w-0 flex-1 p-6 md:p-10">
+
+                {/* Header */}
+                <header className="mb-10 flex items-center justify-between">
                     <div>
-                        <h2 className="text-3xl font-semibold">{activePage}</h2>
-                        <p className="mt-2 text-sm">
+                        <h2 className="text-3xl font-bold">
+                            {activePage}
+                        </h2>
+
+                        <p className="mt-2 text-gray-500">
                             Bookstore Management System
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm">
-                        <UserRound size={18} />
-                        Admin
+                    <div className="text-sm">
+                        ♙ &nbsp; Admin
                     </div>
                 </header>
 
                 {activePage === "Dashboard" ? (
                     <>
-                        {/* Statistics */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {/* Statistics Cards */}
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                             {stats.map((stat) => (
                                 <div
                                     key={stat.title}
-                                    className="rounded border border-gray-400 bg-white p-5"
+                                    className="rounded border border-gray-200 bg-white p-6"
                                 >
-                                    <p className="text-sm">{stat.title}</p>
-                                    <h3 className="mt-3 text-3xl font-semibold">
+                                    <p className="text-gray-500">
+                                        {stat.title}
+                                    </p>
+
+                                    <h3 className="mt-5 text-3xl font-bold">
                                         {stat.value}
                                     </h3>
                                 </div>
@@ -97,19 +93,19 @@ export default function Home() {
                         </div>
 
                         {/* Recent Sales */}
-                        <section className="mt-6 rounded border border-gray-400 bg-white p-5">
-                            <h3 className="mb-4 text-xl font-semibold">
+                        <section className="mt-8 rounded border border-gray-200 bg-white p-6">
+                            <h3 className="mb-6 text-2xl font-semibold">
                                 Recent Sales
                             </h3>
 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-[#eeeeee]">
+                                    <thead className="bg-[#f3f4f6]">
                                     <tr>
-                                        <th className="border p-3">Book Name</th>
-                                        <th className="border p-3">Quantity</th>
-                                        <th className="border p-3">Amount</th>
-                                        <th className="border p-3">Date</th>
+                                        <th className="p-4">Book Name</th>
+                                        <th className="p-4">Quantity</th>
+                                        <th className="p-4">Amount</th>
+                                        <th className="p-4">Date</th>
                                     </tr>
                                     </thead>
 
@@ -117,7 +113,7 @@ export default function Home() {
                                     <tr>
                                         <td
                                             colSpan={4}
-                                            className="border p-6 text-center"
+                                            className="p-9 text-center text-gray-500"
                                         >
                                             No sales records available.
                                         </td>
@@ -127,10 +123,14 @@ export default function Home() {
                             </div>
                         </section>
                     </>
+                ) : activePage === "Books Inventory" ? (
+                    <BooksInventory />
                 ) : (
-                    <section className="rounded border border-gray-400 bg-white p-6">
-                        <h3 className="text-xl font-semibold">{activePage}</h3>
-                        <p className="mt-3 text-sm">
+                    <section className="rounded border border-gray-200 bg-white p-6">
+                        <h3 className="text-xl font-semibold">
+                            {activePage}
+                        </h3>
+                        <p className="mt-3 text-gray-500">
                             This section is under development.
                         </p>
                     </section>
