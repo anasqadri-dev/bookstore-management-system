@@ -128,12 +128,13 @@ export default function Home() {
                     </>
                 )  : activePage === "Books Inventory" ? (
                     <BooksInventory />
-                    ) : activePage === "Suppliers" ? (
+                ) : activePage === "Books Inventory" ? (
+                    <BooksInventory />
+                ) : activePage === "Suppliers" ? (
                     <Suppliers />
-                    ) : activePage === "Sales / POS" ? (
+                ) : activePage === "Sales / POS" ? (
                     <SalesPOS />
-                    ) : (
-
+                ) : (
                     <section className="rounded border border-gray-200 bg-white p-6">
                         <h3 className="text-xl font-semibold">
                             {activePage}
