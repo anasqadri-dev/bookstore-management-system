@@ -4,6 +4,8 @@
 import { useState } from "react";
 import BooksInventory from "../components/BooksInventory";
 import SalesPOS from "../components/SalesPOS";
+import Suppliers from "../components/Suppliers";
+
 
 export default function Home() {
     const [activePage, setActivePage] = useState("Dashboard");
@@ -124,8 +126,12 @@ export default function Home() {
                             </div>
                         </section>
                     </>
+                )  : activePage === "Books Inventory" ? (
+                    <BooksInventory />
                 ) : activePage === "Books Inventory" ? (
                     <BooksInventory />
+                ) : activePage === "Suppliers" ? (
+                    <Suppliers />
                 ) : activePage === "Sales / POS" ? (
                     <SalesPOS />
                 ) : (
