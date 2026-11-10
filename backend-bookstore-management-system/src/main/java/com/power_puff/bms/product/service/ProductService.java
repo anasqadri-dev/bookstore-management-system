@@ -8,7 +8,6 @@ import com.power_puff.bms.product.dto.ProductResponse;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.mapper.ProductMapper;
 import com.power_puff.bms.product.repository.ProductRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,9 +37,12 @@ public class ProductService {
         Product product = ProductMapper.toEntity(request);
         product.setSku(normalizedSku);
         try {
-            return ProductMapper.toResponse(productRepository.save(product));
-        } catch (DataIntegrityViolationException exception) {
-            throw new DuplicateResourceException("A product with this SKU already exists.");
+            return ProductMapper.toResponse(productRepository.saveAndFlush(product));
+        } catch (RuntimeException exception) {
+            if (isDuplicateSkuViolation(exception)) {
+                throw new DuplicateResourceException("A product with this SKU already exists.");
+            }
+            throw exception;
         }
     }
 
@@ -52,9 +54,12 @@ public class ProductService {
         ProductMapper.updateEntity(product, request);
         product.setSku(normalizedSku);
         try {
-            return ProductMapper.toResponse(productRepository.save(product));
-        } catch (DataIntegrityViolationException exception) {
-            throw new DuplicateResourceException("A product with this SKU already exists.");
+            return ProductMapper.toResponse(productRepository.saveAndFlush(product));
+        } catch (RuntimeException exception) {
+            if (isDuplicateSkuViolation(exception)) {
+                throw new DuplicateResourceException("A product with this SKU already exists.");
+            }
+            throw exception;
         }
     }
 
@@ -104,5 +109,19 @@ public class ProductService {
 
     private String normalizeSku(String sku) {
         return sku.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private boolean isDuplicateSkuViolation(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null
+                    && message.toLowerCase(Locale.ROOT)
+                    .contains("unique constraint failed: products.sku")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }
