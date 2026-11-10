@@ -24,7 +24,7 @@ public class ProductUsageChecker {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public boolean isReferenced(Long productId) {
+    public boolean isReferenced(Integer productId) {
         for (String table : REFERENCE_TABLES) {
             Integer tableExists = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
