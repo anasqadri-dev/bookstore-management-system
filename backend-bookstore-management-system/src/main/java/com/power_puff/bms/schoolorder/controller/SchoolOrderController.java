@@ -2,6 +2,7 @@ package com.power_puff.bms.schoolorder.controller;
 
 import com.power_puff.bms.common.response.ApiResponse;
 import com.power_puff.bms.schoolorder.dto.SchoolOrderRequest;
+import com.power_puff.bms.schoolorder.dto.SchoolOrderStatusUpdateRequest;
 import com.power_puff.bms.schoolorder.dto.SchoolQuotationResponse;
 import com.power_puff.bms.schoolorder.service.SchoolQuotationService;
 import com.power_puff.bms.schoolorder.dto.SchoolOrderResponse;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +58,15 @@ public class SchoolOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "School order retrieved successfully.",
                 schoolOrderService.getById(id)));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<SchoolOrderResponse>> updateStatus(
+            @PathVariable Integer id,
+            @Valid @RequestBody SchoolOrderStatusUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "School order status updated successfully.",
+                schoolOrderService.updateStatus(id, request.status())));
     }
 
     @GetMapping("/{id}/quotation")
