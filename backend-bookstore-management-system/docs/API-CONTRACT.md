@@ -137,6 +137,41 @@ Example request:
 }
 ```
 
+## Purchase Orders
+
+Admin-only endpoints:
+
+- `POST /api/purchase-orders` — create a purchase order for a registered supplier.
+- `GET /api/purchase-orders` — list purchase orders.
+- `GET /api/purchase-orders/{id}` — retrieve one purchase order.
+- `POST /api/purchase-orders/{id}/receive` — record goods received for an `ORDERED` purchase order.
+
+A purchase order request contains a `supplierId` and a non-empty `items` array. Each item contains `productId`, `quantity`, and `unitCost`. The unit cost is the supplier purchase cost and is stored separately from the product's retail price. New purchase orders start with status `ORDERED`.
+
+Example request:
+
+```json
+{
+  "supplierId": 4,
+  "items": [
+    { "productId": 7, "quantity": 10, "unitCost": 55.00 },
+    { "productId": 9, "quantity": 5, "unitCost": 72.50 }
+  ]
+}
+```
+
+The receive action marks the order `RECEIVED`, records `receivedDate`, and increases each product's stock by the quantities saved on the purchase-order items. These changes are committed together. Receiving an order more than once returns HTTP 409 and does not increase stock again.
+
+### Purchase-order error cases
+
+| Situation | HTTP status | Response behavior |
+|---|---:|---|
+| Supplier id or item data is missing/invalid | 400 | The request is rejected. |
+| A referenced supplier or product does not exist | 404 | The response identifies the missing resource. |
+| The purchase order does not exist | 404 | The response reports that the purchase order was not found. |
+| Goods have already been received for the order | 409 | The repeated receive request is rejected; stock remains unchanged. |
+| The caller is not an Admin | 403 | Purchase-order endpoints are forbidden. |
+
 ## User account administration
 
 Admin-only:
