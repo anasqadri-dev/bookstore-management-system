@@ -36,6 +36,29 @@ Login uses an HTTP session. Desktop UI requests after login must retain and send
 
 Product fields follow the SDS data dictionary: `id`, `sku`, `title`, optional `author`, `price`, `quantity`, and `min_stock` (JSON field `minStock`). No category field is introduced because it is not in the SDS product data dictionary.
 
+## Sales / POS
+
+Admin and Staff:
+
+- `POST /api/sales` — confirm and save a cash sale; validates stock, calculates totals, deducts stock, and records the sale activity in one transaction.
+- `GET /api/sales/{saleId}/receipt` — retrieve the saved receipt for a sale.
+
+The create request accepts an optional `customerName` and a non-empty `items` array. Each item contains only `productId` and `quantity`; the backend reads the current product price and does not trust a price supplied by the desktop client.
+
+Example request:
+
+```json
+{
+  "customerName": "Walk-in Customer",
+  "items": [
+    { "productId": 7, "quantity": 2 },
+    { "productId": 9, "quantity": 1 }
+  ]
+}
+```
+
+The receipt response contains `id`, `saleDate`, `customerName`, `totalAmount`, `cashierName`, and `items`. Each receipt item contains `productId`, `sku`, `title`, `quantity`, `unitPrice`, and `subtotal`. The saved `unitPrice` and `subtotal` preserve the amounts used for that sale when a product's current price changes later.
+
 ## User account administration
 
 Admin-only:
