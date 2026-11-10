@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
 
 class SchoolOrderStatusServiceTest {
 
@@ -22,6 +25,8 @@ class SchoolOrderStatusServiceTest {
 
     @Test
     void rejectsUnknownOrder() {
+        when(repository.findById(999999)).thenReturn(Optional.empty());
+
         assertThrows(ResourceNotFoundException.class,
                 () -> service.updateStatus(999999, SchoolOrderStatus.READY));
     }
