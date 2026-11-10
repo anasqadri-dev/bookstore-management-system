@@ -1,5 +1,6 @@
 package com.power_puff.bms.product.service;
 
+import com.power_puff.bms.activitylog.service.ActivityLogService;
 import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.common.exception.ResourceNotFoundException;
 import com.power_puff.bms.product.dto.ProductRequest;
@@ -20,11 +21,14 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductUsageChecker productUsageChecker;
+    private final ActivityLogService activityLogService;
 
     public ProductService(ProductRepository productRepository,
-                          ProductUsageChecker productUsageChecker) {
+                          ProductUsageChecker productUsageChecker,
+                          ActivityLogService activityLogService) {
         this.productRepository = productRepository;
         this.productUsageChecker = productUsageChecker;
+        this.activityLogService = activityLogService;
     }
 
     public ProductResponse create(ProductRequest request) {
@@ -81,6 +85,7 @@ public class ProductService {
                     "This product cannot be deleted because it is used in an existing sale or order.");
         }
         productRepository.delete(product);
+        activityLogService.recordCurrentUserAction("DELETE", "Deleted product id=" + id);
     }
 
     private Product getEntity(Long id) {
