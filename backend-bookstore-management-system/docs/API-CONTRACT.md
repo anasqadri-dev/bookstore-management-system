@@ -88,7 +88,7 @@ Admin-only endpoints:
 
 A school order request contains a `schoolId` and a non-empty `items` array. Each item contains `productId` and `quantity`. New orders start with status `PENDING`. The supported status values are `PENDING`, `READY`, and `DELIVERED`.
 
-The status update request contains a `status` field set to one of those three values.
+The status update request contains a `status` field set to one of those three values. A missing or unsupported status is rejected with HTTP 400. Only Admin users may update school-order status.
 
 Example request:
 
