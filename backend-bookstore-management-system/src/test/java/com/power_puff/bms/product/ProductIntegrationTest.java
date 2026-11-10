@@ -47,7 +47,7 @@ class ProductIntegrationTest {
         jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS sale_items " +
                 "(id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL)");
         jdbcTemplate.update("DELETE FROM sale_items");
-        productRepository.deleteAllInBatch();
+        jdbcTemplate.update("DELETE FROM products");
 
         validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
@@ -59,7 +59,7 @@ class ProductIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        productRepository.deleteAllInBatch();
+        jdbcTemplate.update("DELETE FROM products");
         jdbcTemplate.update("DELETE FROM sale_items");
         if (validator != null) {
             validator.close();
