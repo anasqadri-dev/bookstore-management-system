@@ -51,13 +51,13 @@ class ProductServiceTest {
         when(productRepository.findBySkuIgnoreCase("BK-200")).thenReturn(Optional.empty());
         when(productRepository.saveAndFlush(any(Product.class))).thenAnswer(invocation -> {
             Product product = invocation.getArgument(0);
-            product.setId(20L);
+            product.setId(20);
             return product;
         });
 
         ProductResponse response = productService.create(validRequest);
 
-        assertEquals(20L, response.id());
+        assertEquals(20, response.id());
         assertEquals("BK-200", response.sku());
         assertFalse(response.lowStock());
     }
@@ -66,7 +66,7 @@ class ProductServiceTest {
     void rejectsDuplicateSkuWithoutSaving() {
         Product existing = new Product("BK-200", "Existing", null,
                 new BigDecimal("100.00"), 1, 1);
-        existing.setId(1L);
+        existing.setId(1);
         when(productRepository.findBySkuIgnoreCase("BK-200")).thenReturn(Optional.of(existing));
 
         assertThrows(DuplicateResourceException.class, () -> productService.create(validRequest));
@@ -75,21 +75,21 @@ class ProductServiceTest {
 
     @Test
     void returnsNotFoundWhenUpdatingMissingProduct() {
-        when(productRepository.findById(999L)).thenReturn(Optional.empty());
+        when(productRepository.findById(999)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> productService.update(999L, validRequest));
+                () -> productService.update(999, validRequest));
     }
 
     @Test
     void blocksDeletionWhenProductIsReferenced() {
         Product existing = new Product("BK-200", "Existing", null,
                 new BigDecimal("100.00"), 1, 0);
-        existing.setId(20L);
-        when(productRepository.findById(20L)).thenReturn(Optional.of(existing));
-        when(productUsageChecker.isReferenced(20L)).thenReturn(true);
+        existing.setId(20);
+        when(productRepository.findById(20)).thenReturn(Optional.of(existing));
+        when(productUsageChecker.isReferenced(20)).thenReturn(true);
 
-        assertThrows(DuplicateResourceException.class, () -> productService.delete(20L));
+        assertThrows(DuplicateResourceException.class, () -> productService.delete(20));
         verify(productRepository, never()).delete(any(Product.class));
     }
 
@@ -97,11 +97,11 @@ class ProductServiceTest {
     void deletesUnusedProduct() {
         Product existing = new Product("BK-200", "Existing", null,
                 new BigDecimal("100.00"), 1, 0);
-        existing.setId(20L);
-        when(productRepository.findById(20L)).thenReturn(Optional.of(existing));
-        when(productUsageChecker.isReferenced(20L)).thenReturn(false);
+        existing.setId(20);
+        when(productRepository.findById(20)).thenReturn(Optional.of(existing));
+        when(productUsageChecker.isReferenced(20)).thenReturn(false);
 
-        productService.delete(20L);
+        productService.delete(20);
 
         verify(productRepository).delete(existing);
         verify(activityLogService).recordCurrentUserAction("DELETE", "Deleted product id=20");
@@ -111,7 +111,7 @@ class ProductServiceTest {
     void searchesByTitleOrSku() {
         Product product = new Product("BK-200", "Quality Book", null,
                 new BigDecimal("250.00"), 8, 3);
-        product.setId(20L);
+        product.setId(20);
         when(productRepository.findByTitleContainingIgnoreCaseOrSkuContainingIgnoreCase(
                 "quality", "quality")).thenReturn(List.of(product));
 
@@ -125,7 +125,7 @@ class ProductServiceTest {
     void flagsQuantityEqualToMinimumAsLowStock() {
         Product product = new Product("BK-201", "Low Stock Book", null,
                 new BigDecimal("10.00"), 3, 3);
-        product.setId(21L);
+        product.setId(21);
         when(productRepository.findAllLowStockProducts()).thenReturn(List.of(product));
 
         List<ProductResponse> lowStock = productService.getLowStockProducts();
