@@ -2,6 +2,9 @@ spring:
   datasource:
     url: "jdbc:sqlite:./target/bms-test.db"
     driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     open-in-view: false
