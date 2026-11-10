@@ -10,6 +10,7 @@ import com.power_puff.bms.schoolorder.dto.SchoolOrderRequest;
 import com.power_puff.bms.schoolorder.dto.SchoolOrderResponse;
 import com.power_puff.bms.schoolorder.entity.SchoolOrder;
 import com.power_puff.bms.schoolorder.entity.SchoolOrderItem;
+import com.power_puff.bms.schoolorder.entity.SchoolOrderStatus;
 import com.power_puff.bms.schoolorder.mapper.SchoolOrderMapper;
 import com.power_puff.bms.schoolorder.repository.SchoolOrderRepository;
 import com.power_puff.bms.user.entity.User;
@@ -82,6 +83,18 @@ public class SchoolOrderService {
 
         SchoolOrder saved = schoolOrderRepository.saveAndFlush(order);
         return SchoolOrderMapper.toResponse(saved);
+    }
+
+    public SchoolOrderResponse updateStatus(Integer id, SchoolOrderStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("A school order status is required.");
+        }
+
+        SchoolOrder order = schoolOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "School order with id " + id + " was not found."));
+        order.setStatus(status);
+        return SchoolOrderMapper.toResponse(schoolOrderRepository.saveAndFlush(order));
     }
 
     @Transactional(readOnly = true)
