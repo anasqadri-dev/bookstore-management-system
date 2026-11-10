@@ -83,9 +83,12 @@ Admin-only endpoints:
 - `POST /api/school-orders` — create a school order for a registered school.
 - `GET /api/school-orders` — list school orders.
 - `GET /api/school-orders/{id}` — retrieve one school order.
+- `PATCH /api/school-orders/{id}/status` — update the order status.
 - `GET /api/school-orders/{id}/quotation` — generate a quotation from the saved order items.
 
 A school order request contains a `schoolId` and a non-empty `items` array. Each item contains `productId` and `quantity`. New orders start with status `PENDING`. The supported status values are `PENDING`, `READY`, and `DELIVERED`.
+
+The status update request contains a `status` field set to one of those three values.
 
 Example request:
 
