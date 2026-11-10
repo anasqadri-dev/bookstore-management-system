@@ -118,6 +118,25 @@ Example request:
 
 The quotation response includes the school order, school, date, status, line items, each line total, and the grand total. Each line total is calculated as the saved `unitPrice` multiplied by its quantity. The quotation uses the price snapshot stored when the order was created, so later product price changes do not alter earlier quotations.
 
+## Suppliers
+
+Admin-only endpoints:
+
+- `POST /api/suppliers` — register a supplier using its required name and optional phone and address.
+- `GET /api/suppliers` — list suppliers in name order.
+
+The supplier data model follows the SDS: `id`, `name`, `phone`, and `address`. A supplier name is required; phone and address may be omitted.
+
+Example request:
+
+```json
+{
+  "name": "Regional Book Distributor",
+  "phone": "03001234567",
+  "address": "Main Market"
+}
+```
+
 ## User account administration
 
 Admin-only:
