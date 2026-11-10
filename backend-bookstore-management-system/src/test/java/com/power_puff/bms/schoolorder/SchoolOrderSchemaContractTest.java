@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.HashSet;
@@ -63,11 +63,13 @@ class SchoolOrderSchemaContractTest {
     void sqliteConnectionEnforcesSchoolOrderForeignKeys() {
         assertEquals(1, jdbcTemplate.queryForObject("PRAGMA foreign_keys", Integer.class));
 
-        assertThrows(DataIntegrityViolationException.class,
+        DataAccessException exception = assertThrows(DataAccessException.class,
                 () -> jdbcTemplate.update("""
                         INSERT INTO school_orders (school_id, order_date, status, user_id)
                         VALUES (?, ?, ?, ?)
                         """, 999999, "2026-11-11", "PENDING", 999999));
+
+        assertTrue(exception.getMessage().contains("FOREIGN KEY constraint failed"));
     }
 
     private Set<String> columns(String tableName) {
