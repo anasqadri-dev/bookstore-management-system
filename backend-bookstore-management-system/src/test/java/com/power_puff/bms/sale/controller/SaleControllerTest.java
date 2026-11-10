@@ -74,8 +74,16 @@ class SaleControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(12))
+                .andExpect(jsonPath("$.data.saleDate").value("2026-11-10T10:00:00Z"))
+                .andExpect(jsonPath("$.data.customerName").value("Walk-in Customer"))
+                .andExpect(jsonPath("$.data.cashierName").value("Counter Staff"))
                 .andExpect(jsonPath("$.data.totalAmount").value(30.00))
-                .andExpect(jsonPath("$.data.items[0].quantity").value(2));
+                .andExpect(jsonPath("$.data.items[0].productId").value(7))
+                .andExpect(jsonPath("$.data.items[0].sku").value("BOOK-7"))
+                .andExpect(jsonPath("$.data.items[0].title").value("Sample Book"))
+                .andExpect(jsonPath("$.data.items[0].quantity").value(2))
+                .andExpect(jsonPath("$.data.items[0].unitPrice").value(15.00))
+                .andExpect(jsonPath("$.data.items[0].subtotal").value(30.00));
 
         verify(saleService).create(any(SaleRequest.class), eq("counter-staff"));
     }
