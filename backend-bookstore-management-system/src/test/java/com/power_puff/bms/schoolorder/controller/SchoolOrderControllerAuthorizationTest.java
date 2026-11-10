@@ -11,7 +11,6 @@ import com.power_puff.bms.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -50,10 +49,14 @@ class SchoolOrderControllerAuthorizationTest {
 
     private Integer schoolId;
     private Integer productId;
+    private Integer createdOrderId;
     private Long userId;
 
     @AfterEach
     void cleanUp() {
+        if (createdOrderId != null) {
+            schoolOrderRepository.deleteById(createdOrderId);
+        }
         if (schoolId != null) {
             schoolRepository.deleteById(schoolId);
         }
@@ -98,6 +101,9 @@ class SchoolOrderControllerAuthorizationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
+        var createdOrder = schoolOrderRepository.findAllBySchoolIdOrderByOrderDateDesc(
+                schoolId).getFirst();
+        createdOrderId = createdOrder.getId();
         assertEquals(1, schoolOrderRepository.findAllBySchoolIdOrderByOrderDateDesc(
                 schoolId).size());
     }
