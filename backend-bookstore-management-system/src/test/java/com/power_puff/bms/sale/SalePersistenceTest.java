@@ -95,7 +95,7 @@ class SalePersistenceTest {
 
         SaleItem savedItem = saleItemRepository.findAllBySaleId(saleId).getFirst();
         assertEquals(2, savedItem.getQuantity());
-        assertEquals(new BigDecimal("15.00"), savedItem.getUnitPrice());
-        assertEquals(new BigDecimal("30.00"), savedItem.getSubtotal());
+        assertEquals(0, new BigDecimal("15.00").compareTo(savedItem.getUnitPrice()));
+        assertEquals(0, new BigDecimal("30.00").compareTo(savedItem.getSubtotal()));
     }
 }
