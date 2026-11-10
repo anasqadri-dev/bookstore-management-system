@@ -1,5 +1,6 @@
 package com.power_puff.bms.purchase.service;
 
+import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.common.exception.ResourceNotFoundException;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.repository.ProductRepository;
@@ -8,6 +9,7 @@ import com.power_puff.bms.purchase.dto.PurchaseOrderRequest;
 import com.power_puff.bms.purchase.dto.PurchaseOrderResponse;
 import com.power_puff.bms.purchase.entity.PurchaseOrder;
 import com.power_puff.bms.purchase.entity.PurchaseOrderItem;
+import com.power_puff.bms.purchase.entity.PurchaseOrderStatus;
 import com.power_puff.bms.purchase.mapper.PurchaseOrderMapper;
 import com.power_puff.bms.purchase.repository.PurchaseOrderRepository;
 import com.power_puff.bms.supplier.entity.Supplier;
@@ -17,6 +19,7 @@ import com.power_puff.bms.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +85,65 @@ public class PurchaseOrderService {
 
         PurchaseOrder saved = purchaseOrderRepository.saveAndFlush(order);
         return PurchaseOrderMapper.toResponse(saved);
+    }
+
+    public PurchaseOrderResponse receiveGoods(Integer purchaseOrderId) {
+        PurchaseOrder order = purchaseOrderRepository.findById(purchaseOrderId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Purchase order with id " + purchaseOrderId + " was not found."));
+
+        if (order.getStatus() == PurchaseOrderStatus.RECEIVED) {
+            throw new DuplicateResourceException(
+                    "Goods have already been received for purchase order " + purchaseOrderId + ".");
+        }
+
+        Map<Integer, Product> productsById = new LinkedHashMap<>();
+        Map<Integer, Integer> receivedQuantities = new LinkedHashMap<>();
+
+        for (PurchaseOrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            productsById.put(product.getId(), product);
+            try {
+                receivedQuantities.merge(
+                        product.getId(), item.getQuantity(), Math::addExact);
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException(
+                        "Combined received quantity exceeds the supported stock range.", exception);
+            }
+        }
+
+        Map<Integer, Integer> updatedStock = new LinkedHashMap<>();
+        for (Map.Entry<Integer, Integer> entry : receivedQuantities.entrySet()) {
+            Product product = productsById.get(entry.getKey());
+            try {
+                updatedStock.put(
+                        entry.getKey(),
+                        Math.addExact(product.getQuantity(), entry.getValue()));
+            } catch (ArithmeticException exception) {
+                throw new IllegalArgumentException(
+                        "Receiving this purchase order would exceed the supported stock range for "
+                                + product.getSku() + ".", exception);
+            }
+        }
+
+        LocalDate receivedDate = LocalDate.now();
+        int claimed = purchaseOrderRepository.markReceivedIfOrdered(
+                purchaseOrderId,
+                PurchaseOrderStatus.ORDERED,
+                PurchaseOrderStatus.RECEIVED,
+                receivedDate);
+        if (claimed != 1) {
+            throw new DuplicateResourceException(
+                    "Goods have already been received for purchase order " + purchaseOrderId + ".");
+        }
+
+        updatedStock.forEach((productId, quantity) ->
+                productsById.get(productId).setQuantity(quantity));
+        productRepository.saveAllAndFlush(productsById.values());
+
+        order.setStatus(PurchaseOrderStatus.RECEIVED);
+        order.setReceivedDate(receivedDate);
+        return PurchaseOrderMapper.toResponse(order);
     }
 
     @Transactional(readOnly = true)
