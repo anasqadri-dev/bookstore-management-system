@@ -144,6 +144,31 @@ class SchoolOrderControllerAuthorizationTest {
     }
 
     @Test
+    @WithMockUser(username = "order-status-admin", roles = "ADMIN")
+    void rejectsMissingSchoolOrderStatusAsBadRequest() throws Exception {
+        mockMvc.perform(patch("/api/school-orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = "order-missing-school-admin", roles = "ADMIN")
+    void rejectsOrderForUnknownSchoolAsNotFound() throws Exception {
+        mockMvc.perform(post("/api/school-orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"schoolId":999999,
+                                 "items":[{"productId":1,"quantity":1}]}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
     @WithMockUser(username = "order-controller-staff", roles = "STAFF")
     void staffCannotCreateOrListSchoolOrders() throws Exception {
         mockMvc.perform(post("/api/school-orders")
