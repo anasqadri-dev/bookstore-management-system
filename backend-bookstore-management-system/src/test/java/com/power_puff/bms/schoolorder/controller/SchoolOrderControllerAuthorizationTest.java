@@ -106,6 +106,12 @@ class SchoolOrderControllerAuthorizationTest {
         createdOrderId = createdOrder.getId();
         assertEquals(1, schoolOrderRepository.findAllBySchoolIdOrderByOrderDateDesc(
                 schoolId).size());
+
+        mockMvc.perform(get("/api/school-orders/{id}/quotation", createdOrderId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.totalAmount").value(40.00))
+                .andExpect(jsonPath("$.data.items[0].lineTotal").value(40.00));
     }
 
     @Test

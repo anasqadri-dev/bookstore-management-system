@@ -2,6 +2,8 @@ package com.power_puff.bms.schoolorder.controller;
 
 import com.power_puff.bms.common.response.ApiResponse;
 import com.power_puff.bms.schoolorder.dto.SchoolOrderRequest;
+import com.power_puff.bms.schoolorder.dto.SchoolQuotationResponse;
+import com.power_puff.bms.schoolorder.service.SchoolQuotationService;
 import com.power_puff.bms.schoolorder.dto.SchoolOrderResponse;
 import com.power_puff.bms.schoolorder.service.SchoolOrderService;
 import jakarta.validation.Valid;
@@ -24,9 +26,12 @@ import java.util.List;
 public class SchoolOrderController {
 
     private final SchoolOrderService schoolOrderService;
+    private final SchoolQuotationService schoolQuotationService;
 
-    public SchoolOrderController(SchoolOrderService schoolOrderService) {
+    public SchoolOrderController(SchoolOrderService schoolOrderService,
+                                 SchoolQuotationService schoolQuotationService) {
         this.schoolOrderService = schoolOrderService;
+        this.schoolQuotationService = schoolQuotationService;
     }
 
     @PostMapping
@@ -51,5 +56,13 @@ public class SchoolOrderController {
         return ResponseEntity.ok(ApiResponse.success(
                 "School order retrieved successfully.",
                 schoolOrderService.getById(id)));
+    }
+
+    @GetMapping("/{id}/quotation")
+    public ResponseEntity<ApiResponse<SchoolQuotationResponse>> getQuotation(
+            @PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "School order quotation generated successfully.",
+                schoolQuotationService.generate(id)));
     }
 }

@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -50,6 +51,7 @@ public class SchoolOrder {
     private User user;
 
     @OneToMany(mappedBy = "schoolOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private List<SchoolOrderItem> items = new ArrayList<>();
 
     protected SchoolOrder() {
