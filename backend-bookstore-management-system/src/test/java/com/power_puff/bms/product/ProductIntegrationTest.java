@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import jakarta.persistence.EntityManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -39,6 +40,9 @@ class ProductIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private MockMvc mockMvc;
     private LocalValidatorFactoryBean validator;
 
@@ -48,6 +52,7 @@ class ProductIntegrationTest {
                 "(id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL)");
         jdbcTemplate.update("DELETE FROM sale_items");
         jdbcTemplate.update("DELETE FROM products");
+        entityManager.clear();
 
         validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
@@ -61,6 +66,7 @@ class ProductIntegrationTest {
     void tearDown() {
         jdbcTemplate.update("DELETE FROM products");
         jdbcTemplate.update("DELETE FROM sale_items");
+        entityManager.clear();
         if (validator != null) {
             validator.close();
         }
