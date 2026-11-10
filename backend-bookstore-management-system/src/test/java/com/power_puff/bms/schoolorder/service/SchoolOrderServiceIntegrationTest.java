@@ -117,6 +117,7 @@ class SchoolOrderServiceIntegrationTest {
         entityManager.clear();
 
         SchoolOrderResponse saved = schoolOrderService.getById(schoolOrderId);
+        assertEquals(5, saved.items().getFirst().quantity());
         assertEquals(0, new BigDecimal("12.50").compareTo(
                 saved.items().getFirst().unitPrice()));
         assertEquals(50, productRepository.findById(productId).orElseThrow().getQuantity());
