@@ -90,6 +90,20 @@ A school order request contains a `schoolId` and a non-empty `items` array. Each
 
 The status update request contains a `status` field set to one of those three values.
 
+### School-order error cases
+
+| Situation | HTTP status | Response behavior |
+|---|---:|---|
+| The school id is missing or invalid, or the items list is empty | 400 | The order request is rejected. |
+| An item has a missing/non-positive product id or quantity | 400 | The order request is rejected. |
+| The combined quantity for a product repeated in the request exceeds available stock | 400 | The response reports requested and available quantities; no order is saved and stock remains unchanged. |
+| A registered school cannot be found | 404 | The response identifies the missing school. |
+| A referenced product cannot be found | 404 | The response identifies the missing product. |
+| The requested order or quotation does not exist | 404 | The response reports that the school order was not found. |
+| The caller is not an Admin | 403 | School and school-order endpoints are forbidden. |
+
+School-order creation validates every requested product and the aggregated quantity for each product before saving the order. Creating a school order does not deduct inventory; the saved order remains pending until its status is updated.
+
 Example request:
 
 ```json
