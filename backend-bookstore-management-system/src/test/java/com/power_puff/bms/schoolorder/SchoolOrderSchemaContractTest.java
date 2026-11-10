@@ -80,7 +80,8 @@ class SchoolOrderSchemaContractTest {
 
     private Set<String> foreignKeys(String tableName) {
         return new HashSet<>(jdbcTemplate.query(
-                "PRAGMA foreign_key_list('" + tableName + "')",
+                "SELECT \"table\", \"from\", \"to\" " +
+                        "FROM pragma_foreign_key_list('" + tableName + "')",
                 (resultSet, rowNumber) ->
                         resultSet.getString("table") + ":"
                                 + resultSet.getString("from") + "->"
