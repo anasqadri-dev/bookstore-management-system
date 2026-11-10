@@ -5,13 +5,19 @@ import com.power_puff.bms.product.controller.ProductController;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.repository.ProductRepository;
 import com.power_puff.bms.product.service.ProductService;
+import com.power_puff.bms.sale.entity.Sale;
+import com.power_puff.bms.sale.entity.SaleItem;
+import com.power_puff.bms.sale.repository.SaleItemRepository;
+import com.power_puff.bms.sale.repository.SaleRepository;
+import com.power_puff.bms.user.entity.User;
+import com.power_puff.bms.user.entity.UserRole;
+import com.power_puff.bms.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import jakarta.persistence.EntityManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +27,8 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,20 +46,26 @@ class ProductIntegrationTest {
     private ProductService productService;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private SaleRepository saleRepository;
+
+    @Autowired
+    private SaleItemRepository saleItemRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private EntityManager entityManager;
 
     private MockMvc mockMvc;
     private LocalValidatorFactoryBean validator;
+    private Long testUserId;
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS sale_items " +
-                "(id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL)");
-        jdbcTemplate.update("DELETE FROM sale_items");
-        jdbcTemplate.update("DELETE FROM products");
+        saleItemRepository.deleteAllInBatch();
+        saleRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
         entityManager.clear();
 
         validator = new LocalValidatorFactoryBean();
@@ -64,8 +78,12 @@ class ProductIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM products");
-        jdbcTemplate.update("DELETE FROM sale_items");
+        saleItemRepository.deleteAllInBatch();
+        saleRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
+        if (testUserId != null) {
+            userRepository.deleteById(testUserId);
+        }
         entityManager.clear();
         if (validator != null) {
             validator.close();
@@ -163,7 +181,16 @@ class ProductIntegrationTest {
     void blocksDeletionWhenProductIsUsedInSale() throws Exception {
         Product saved = productRepository.saveAndFlush(new Product(
                 "USED-1", "Previously Sold", null, new BigDecimal("10.00"), 4, 1));
-        jdbcTemplate.update("INSERT INTO sale_items(product_id) VALUES (?)", saved.getId());
+        User user = userRepository.saveAndFlush(new User(
+                "product-usage-" + UUID.randomUUID(), "test-hash",
+                "Product Usage Test", UserRole.STAFF));
+        testUserId = user.getId();
+
+        Sale sale = new Sale(Instant.now(), null,
+                new BigDecimal("10.00"), user);
+        sale.addItem(new SaleItem(saved, 1,
+                new BigDecimal("10.00"), new BigDecimal("10.00")));
+        saleRepository.saveAndFlush(sale);
 
         mockMvc.perform(delete("/api/products/{id}", saved.getId()))
                 .andExpect(status().isConflict())
