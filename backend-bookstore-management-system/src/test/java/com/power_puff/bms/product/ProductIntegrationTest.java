@@ -111,7 +111,7 @@ class ProductIntegrationTest {
 
     @Test
     void updatesExistingProduct() throws Exception {
-        Product saved = productRepository.save(new Product(
+        Product saved = productRepository.saveAndFlush(new Product(
                 "BK-302", "Old title", null, new BigDecimal("50.00"), 5, 2));
 
         mockMvc.perform(put("/api/products/{id}", saved.getId())
@@ -124,9 +124,9 @@ class ProductIntegrationTest {
 
     @Test
     void searchesByTitleOrSkuAndReturnsEmptyForNoMatch() throws Exception {
-        productRepository.save(new Product(
+        productRepository.saveAndFlush(new Product(
                 "SKU-RED", "Red Notebook", null, new BigDecimal("25.00"), 10, 2));
-        productRepository.save(new Product(
+        productRepository.saveAndFlush(new Product(
                 "SKU-BLUE", "Blue Notebook", null, new BigDecimal("30.00"), 8, 2));
 
         mockMvc.perform(get("/api/products").param("search", "Red"))
@@ -141,11 +141,11 @@ class ProductIntegrationTest {
 
     @Test
     void lowStockIncludesQuantityEqualToMinimumButExcludesAboveMinimum() throws Exception {
-        productRepository.save(new Product(
+        productRepository.saveAndFlush(new Product(
                 "LOW-1", "At Threshold", null, new BigDecimal("10.00"), 3, 3));
-        productRepository.save(new Product(
+        productRepository.saveAndFlush(new Product(
                 "LOW-2", "Above Threshold", null, new BigDecimal("10.00"), 4, 3));
-        productRepository.save(new Product(
+        productRepository.saveAndFlush(new Product(
                 "LOW-3", "Below Threshold", null, new BigDecimal("10.00"), 2, 3));
 
         mockMvc.perform(get("/api/products/low-stock"))
@@ -155,7 +155,7 @@ class ProductIntegrationTest {
 
     @Test
     void blocksDeletionWhenProductIsUsedInSale() throws Exception {
-        Product saved = productRepository.save(new Product(
+        Product saved = productRepository.saveAndFlush(new Product(
                 "USED-1", "Previously Sold", null, new BigDecimal("10.00"), 4, 1));
         jdbcTemplate.update("INSERT INTO sale_items(product_id) VALUES (?)", saved.getId());
 
@@ -168,7 +168,7 @@ class ProductIntegrationTest {
 
     @Test
     void deletesUnusedProduct() throws Exception {
-        Product saved = productRepository.save(new Product(
+        Product saved = productRepository.saveAndFlush(new Product(
                 "UNUSED-1", "Unused Product", null, new BigDecimal("10.00"), 4, 1));
 
         mockMvc.perform(delete("/api/products/{id}", saved.getId()))
@@ -186,7 +186,7 @@ class ProductIntegrationTest {
                     "PERF-" + index, "Performance Test Book " + index, null,
                     new BigDecimal("50.00"), 10, 2));
         }
-        productRepository.saveAll(products);
+        productRepository.saveAllAndFlush(products);
 
         mockMvc.perform(get("/api/products").param("search", "Performance"))
                 .andExpect(status().isOk());
