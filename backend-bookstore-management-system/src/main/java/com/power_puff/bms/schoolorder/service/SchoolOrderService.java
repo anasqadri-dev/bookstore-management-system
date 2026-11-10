@@ -76,9 +76,17 @@ public class SchoolOrderService {
                         "Product with id " + entry.getKey() + " was not found.");
             }
 
+            int requestedQuantity = entry.getValue();
+            if (requestedQuantity > product.getQuantity()) {
+                throw new IllegalArgumentException(
+                        "Insufficient stock for " + product.getSku()
+                                + ": requested " + requestedQuantity
+                                + ", available " + product.getQuantity() + ".");
+            }
+
             BigDecimal unitPrice = product.getPrice();
             order.addItem(new SchoolOrderItem(
-                    product, entry.getValue(), unitPrice));
+                    product, requestedQuantity, unitPrice));
         }
 
         SchoolOrder saved = schoolOrderRepository.saveAndFlush(order);
