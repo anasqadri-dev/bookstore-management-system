@@ -135,6 +135,22 @@ class SaleServiceIntegrationTest {
     }
 
     @Test
+    void allowsSaleWhenRequestedQuantityExactlyMatchesAvailableStock() {
+        User user = createUser();
+        Product product = createProduct("CHECKOUT-EXACT", "Exact Stock Book",
+                new BigDecimal("25.00"), 3);
+
+        SaleReceiptResponse receipt = saleService.create(
+                new SaleRequest(null, List.of(new SaleItemRequest(product.getId(), 3))),
+                user.getUsername());
+        saleIds.add(receipt.id());
+
+        assertEquals(0, new BigDecimal("75.00").compareTo(receipt.totalAmount()));
+        assertEquals(0, productRepository.findById(product.getId())
+                .orElseThrow().getQuantity());
+    }
+
+    @Test
     void rejectsSaleWithoutItems() {
         assertThrows(IllegalArgumentException.class,
                 () -> saleService.create(new SaleRequest(null, List.of()), "unused"));

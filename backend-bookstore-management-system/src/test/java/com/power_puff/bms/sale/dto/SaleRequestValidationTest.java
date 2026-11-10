@@ -54,6 +54,26 @@ class SaleRequestValidationTest {
     }
 
     @Test
+    void rejectsNonPositiveProductIds() {
+        for (int productId : new int[]{0, -1}) {
+            SaleRequest request = new SaleRequest(null,
+                    List.of(new SaleItemRequest(productId, 1)));
+
+            assertFalse(validator.validate(request).isEmpty(),
+                    "Product id " + productId + " must be rejected.");
+        }
+    }
+
+    @Test
+    void rejectsNegativeSaleQuantities() {
+        SaleRequest request = new SaleRequest(null,
+                List.of(new SaleItemRequest(1, -1)));
+
+        assertTrue(validator.validate(request).stream()
+                .anyMatch(error -> error.getPropertyPath().toString().contains("quantity")));
+    }
+
+    @Test
     void acceptsValidSaleRequest() {
         SaleRequest request = new SaleRequest("Walk-in Customer",
                 List.of(new SaleItemRequest(1, 2)));
