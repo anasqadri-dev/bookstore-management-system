@@ -46,7 +46,7 @@ public class ProductService {
         }
     }
 
-    public ProductResponse update(Long id, ProductRequest request) {
+    public ProductResponse update(Integer id, ProductRequest request) {
         Product product = getEntity(id);
         String normalizedSku = normalizeSku(request.sku());
         ensureSkuAvailable(normalizedSku, id);
@@ -64,7 +64,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public ProductResponse getById(Long id) {
+    public ProductResponse getById(Integer id) {
         return ProductMapper.toResponse(getEntity(id));
     }
 
@@ -83,7 +83,7 @@ public class ProductService {
                 .stream().map(ProductMapper::toResponse).toList();
     }
 
-    public void delete(Long id) {
+    public void delete(Integer id) {
         Product product = getEntity(id);
         if (productUsageChecker.isReferenced(id)) {
             throw new DuplicateResourceException(
@@ -93,13 +93,13 @@ public class ProductService {
         activityLogService.recordCurrentUserAction("DELETE", "Deleted product id=" + id);
     }
 
-    private Product getEntity(Long id) {
+    private Product getEntity(Integer id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Product with id " + id + " was not found."));
     }
 
-    private void ensureSkuAvailable(String sku, Long currentProductId) {
+    private void ensureSkuAvailable(String sku, Integer currentProductId) {
         productRepository.findBySkuIgnoreCase(sku).ifPresent(existing -> {
             if (currentProductId == null || !existing.getId().equals(currentProductId)) {
                 throw new DuplicateResourceException("A product with this SKU already exists.");
