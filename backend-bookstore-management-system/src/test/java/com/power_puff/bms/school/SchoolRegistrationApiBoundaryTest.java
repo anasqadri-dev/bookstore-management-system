@@ -5,9 +5,8 @@ import com.power_puff.bms.school.repository.SchoolRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc as Boot4AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@Boot4AutoConfigureMockMvc
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 class SchoolRegistrationApiBoundaryTest {
 
@@ -50,9 +49,9 @@ class SchoolRegistrationApiBoundaryTest {
                                 """.formatted(schoolName)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.name").value(schoolName))
-                .andExpect(jsonPath("$.data.contactPerson").doesNotExist())
-                .andExpect(jsonPath("$.data.phone").doesNotExist())
-                .andExpect(jsonPath("$.data.address").doesNotExist());
+                .andExpect(jsonPath("$.data.contactPerson").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.phone").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.address").value(org.hamcrest.Matchers.nullValue()));
 
         School saved = schoolRepository.findAllByOrderByNameAsc().stream()
                 .filter(school -> school.getName().equals(schoolName))
