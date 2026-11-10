@@ -59,6 +59,21 @@ Example request:
 
 The receipt response contains `id`, `saleDate`, `customerName`, `totalAmount`, `cashierName`, and `items`. Each receipt item contains `productId`, `sku`, `title`, `quantity`, `unitPrice`, and `subtotal`. The saved `unitPrice` and `subtotal` preserve the amounts used for that sale when a product's current price changes later.
 
+### POS error cases
+
+| Situation | HTTP status | Response behavior |
+|---|---:|---|
+| Sale has no items or the items list is missing | 400 | Validation error; no sale is created. |
+| An item is null, a product id is missing/non-positive, or a quantity is missing/non-positive | 400 | Validation error; no sale is created. |
+| Combined quantity for a repeated product exceeds the supported integer range | 400 | The request is rejected; no stock is deducted. |
+| A referenced product does not exist | 404 | The response identifies the missing product. |
+| Requested quantity exceeds current available stock | 400 | The response reports the product, requested quantity, and available quantity; no item in that sale is deducted. |
+| The requested receipt id does not exist | 404 | The response reports that the sale was not found. |
+| The caller is not logged in | 401 | Authentication is required. |
+| The caller is authenticated but is not Admin or Staff | 403 | The operation is forbidden. |
+
+The checkout service validates every product and requested quantity before it changes stock. Sale rows, sale-item rows, stock deductions, and the SALE activity event are committed in one transaction. If a runtime failure occurs while saving the sale or its activity event, the transaction rolls back so the sale and stock deduction are not partially committed.
+
 ## User account administration
 
 Admin-only:
