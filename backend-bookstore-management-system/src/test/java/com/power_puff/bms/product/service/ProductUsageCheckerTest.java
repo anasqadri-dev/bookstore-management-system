@@ -17,7 +17,7 @@ class ProductUsageCheckerTest {
 
         ProductUsageChecker checker = new ProductUsageChecker(jdbcTemplate);
 
-        assertFalse(checker.isReferenced(10L));
+        assertFalse(checker.isReferenced(10));
         verify(jdbcTemplate, times(3)).queryForObject(anyString(), eq(Integer.class), any());
     }
 
@@ -29,6 +29,6 @@ class ProductUsageCheckerTest {
 
         ProductUsageChecker checker = new ProductUsageChecker(jdbcTemplate);
 
-        assertTrue(checker.isReferenced(10L));
+        assertTrue(checker.isReferenced(10));
     }
 }
