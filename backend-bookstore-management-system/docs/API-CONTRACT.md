@@ -74,6 +74,33 @@ The receipt response contains `id`, `saleDate`, `customerName`, `totalAmount`, `
 
 The checkout service validates every product and requested quantity before it changes stock. Sale rows, sale-item rows, stock deductions, and the SALE activity event are committed in one transaction. If a runtime failure occurs while saving the sale or its activity event, the transaction rolls back so the sale and stock deduction are not partially committed.
 
+## Schools and School Orders
+
+Admin-only endpoints:
+
+- `POST /api/schools` — register a school using its name and optional contact person, phone, and address.
+- `GET /api/schools` — list registered schools.
+- `POST /api/school-orders` — create a school order for a registered school.
+- `GET /api/school-orders` — list school orders.
+- `GET /api/school-orders/{id}` — retrieve one school order.
+- `GET /api/school-orders/{id}/quotation` — generate a quotation from the saved order items.
+
+A school order request contains a `schoolId` and a non-empty `items` array. Each item contains `productId` and `quantity`. New orders start with status `PENDING`. The supported status values are `PENDING`, `READY`, and `DELIVERED`.
+
+Example request:
+
+```json
+{
+  "schoolId": 3,
+  "items": [
+    { "productId": 7, "quantity": 2 },
+    { "productId": 9, "quantity": 1 }
+  ]
+}
+```
+
+The quotation response includes the school order, school, date, status, line items, each line total, and the grand total. Each line total is calculated as the saved `unitPrice` multiplied by its quantity. The quotation uses the price snapshot stored when the order was created, so later product price changes do not alter earlier quotations.
+
 ## User account administration
 
 Admin-only:
