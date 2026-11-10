@@ -26,12 +26,14 @@ public class SchoolOrderItem {
 
     @NotNull(message = "School order is required")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = false,
+            columnDefinition = "INTEGER REFERENCES school_orders(id)")
     private SchoolOrder schoolOrder;
 
     @NotNull(message = "Product is required")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id", nullable = false,
+            columnDefinition = "INTEGER REFERENCES products(id)")
     private Product product;
 
     @NotNull(message = "Quantity is required")
