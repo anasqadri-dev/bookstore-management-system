@@ -33,8 +33,7 @@ public class SchoolOrder {
 
     @NotNull(message = "School is required")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "school_id", nullable = false,
-            columnDefinition = "INTEGER REFERENCES schools(id)")
+    @JoinColumn(name = "school_id", nullable = false)
     private School school;
 
     @NotNull(message = "Order date is required")
@@ -48,8 +47,7 @@ public class SchoolOrder {
 
     @NotNull(message = "Order creator is required")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false,
-            columnDefinition = "INTEGER REFERENCES users(id)")
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @OneToMany(mappedBy = "schoolOrder", cascade = CascadeType.ALL, orphanRemoval = true)
