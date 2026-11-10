@@ -7,7 +7,6 @@ import SalesPOS from "../components/SalesPOS";
 import Suppliers from "../components/Suppliers";
 import SchoolOrders from "../components/SchoolOrders";
 
-
 export default function Home() {
     const [activePage, setActivePage] = useState("Dashboard");
 
@@ -29,11 +28,12 @@ export default function Home() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex">
+        <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
-            <aside className="bg-[#030712] p-6 text-white md:min-h-screen md:w-[320px] md:shrink-0">
-                <h1 className="text-2xl font-bold">Qadri Books</h1>
+            <aside className="bg-[#030712] p-6 text-white md:h-screen md:w-[320px] md:shrink-0 md:overflow-y-auto">
+                <h1 className="text-2xl font-bold">Book Store</h1>
+
                 <p className="mt-2 text-sm text-gray-400">
                     Management System
                 </p>
@@ -42,6 +42,7 @@ export default function Home() {
                     {menu.map((item) => (
                         <button
                             key={item.name}
+                            type="button"
                             onClick={() => setActivePage(item.name)}
                             className={`flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm transition ${
                                 activePage === item.name
@@ -57,10 +58,10 @@ export default function Home() {
             </aside>
 
             {/* Main Content */}
-            <main className="min-w-0 flex-1 p-6 md:p-10">
+            <main className="min-w-0 flex-1 p-6 md:h-screen md:overflow-y-auto md:p-10">
 
                 {/* Header */}
-                <header className="mb-10 flex items-center justify-between">
+                <header className="mb-10 flex items-center justify-between gap-4">
                     <div>
                         <h2 className="text-3xl font-bold">
                             {activePage}
@@ -71,7 +72,7 @@ export default function Home() {
                         </p>
                     </div>
 
-                    <div className="text-sm">
+                    <div className="shrink-0 text-sm">
                         ♙ &nbsp; Admin
                     </div>
                 </header>
@@ -127,8 +128,6 @@ export default function Home() {
                             </div>
                         </section>
                     </>
-                )  : activePage === "Books Inventory" ? (
-                    <BooksInventory />
                 ) : activePage === "Books Inventory" ? (
                     <BooksInventory />
                 ) : activePage === "Suppliers" ? (
@@ -138,11 +137,11 @@ export default function Home() {
                 ) : activePage === "Sales / POS" ? (
                     <SalesPOS />
                 ) : (
-
                     <section className="rounded border border-gray-200 bg-white p-6">
                         <h3 className="text-xl font-semibold">
                             {activePage}
                         </h3>
+
                         <p className="mt-3 text-gray-500">
                             This section is under development.
                         </p>
