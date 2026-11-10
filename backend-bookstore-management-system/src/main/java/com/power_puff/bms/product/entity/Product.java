@@ -23,8 +23,7 @@ public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(columnDefinition = "INTEGER")
-    private Long id;
+    private Integer id;
 
     @NotBlank(message = "SKU is required")
     @Size(max = 100, message = "SKU cannot exceed 100 characters")
@@ -81,7 +80,7 @@ public class Product {
         return quantity != null && minStock != null && quantity <= minStock;
     }
 
-    public Long getId() { return id; }
+    public Integer getId() { return id; }
     public String getSku() { return sku; }
     public String getTitle() { return title; }
     public String getAuthor() { return author; }
@@ -89,7 +88,7 @@ public class Product {
     public Integer getQuantity() { return quantity; }
     public Integer getMinStock() { return minStock; }
 
-    public void setId(Long id) { this.id = id; }
+    public void setId(Integer id) { this.id = id; }
     public void setSku(String sku) { this.sku = sku; normalizeSku(); }
     public void setTitle(String title) { this.title = title; }
     public void setAuthor(String author) { this.author = author; }
