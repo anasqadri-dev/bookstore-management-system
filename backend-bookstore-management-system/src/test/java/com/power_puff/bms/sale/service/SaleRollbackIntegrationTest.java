@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -79,7 +80,7 @@ class SaleRollbackIntegrationTest {
         long salesBefore = saleRepository.count();
         doThrow(new IllegalStateException("Audit storage unavailable"))
                 .when(activityLogService)
-                .record(eq(user), eq("SALE"), anyString());
+                .record(any(User.class), eq("SALE"), anyString());
 
         assertThrows(IllegalStateException.class, () -> saleService.create(
                 new SaleRequest(null, List.of(new SaleItemRequest(productId, 2))),
