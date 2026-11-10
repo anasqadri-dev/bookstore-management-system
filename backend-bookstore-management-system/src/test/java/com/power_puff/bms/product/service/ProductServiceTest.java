@@ -49,7 +49,7 @@ class ProductServiceTest {
     @Test
     void createsProductAndNormalizesSku() {
         when(productRepository.findBySkuIgnoreCase("BK-200")).thenReturn(Optional.empty());
-        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+        when(productRepository.saveAndFlush(any(Product.class))).thenAnswer(invocation -> {
             Product product = invocation.getArgument(0);
             product.setId(20L);
             return product;
@@ -70,7 +70,7 @@ class ProductServiceTest {
         when(productRepository.findBySkuIgnoreCase("BK-200")).thenReturn(Optional.of(existing));
 
         assertThrows(DuplicateResourceException.class, () -> productService.create(validRequest));
-        verify(productRepository, never()).save(any(Product.class));
+        verify(productRepository, never()).saveAndFlush(any(Product.class));
     }
 
     @Test
