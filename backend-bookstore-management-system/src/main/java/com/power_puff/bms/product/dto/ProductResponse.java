@@ -3,7 +3,7 @@ package com.power_puff.bms.product.dto;
 import java.math.BigDecimal;
 
 public record ProductResponse(
-        Long id,
+        Integer id,
         String sku,
         String title,
         String author,
