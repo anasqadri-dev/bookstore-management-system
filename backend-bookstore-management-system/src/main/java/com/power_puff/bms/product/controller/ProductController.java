@@ -38,7 +38,7 @@ public class ProductController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    public ApiResponse<ProductResponse> getById(@PathVariable Long id) {
+    public ApiResponse<ProductResponse> getById(@PathVariable Integer id) {
         return ApiResponse.success("Product retrieved successfully", productService.getById(id));
     }
 
@@ -54,14 +54,14 @@ public class ProductController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ProductResponse> update(
-            @PathVariable Long id, @Valid @RequestBody ProductRequest request) {
+            @PathVariable Integer id, @Valid @RequestBody ProductRequest request) {
         return ApiResponse.success("Product updated successfully",
                 productService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Integer id) {
         productService.delete(id);
         return ApiResponse.success("Product deleted successfully");
     }
