@@ -101,8 +101,12 @@ class SaleServiceIntegrationTest {
         entityManager.clear();
 
         SaleReceiptResponse retrievedReceipt = saleService.getReceipt(receipt.id());
+        var notebookReceiptItem = retrievedReceipt.items().stream()
+                .filter(item -> item.productId().equals(notebook.getId()))
+                .findFirst()
+                .orElseThrow();
         assertEquals(0, new BigDecimal("15.00").compareTo(
-                retrievedReceipt.items().getFirst().unitPrice()));
+                notebookReceiptItem.unitPrice()));
         assertEquals(receipt.id(), retrievedReceipt.id());
     }
 
