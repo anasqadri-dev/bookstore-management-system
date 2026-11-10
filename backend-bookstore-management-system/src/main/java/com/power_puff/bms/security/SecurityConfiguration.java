@@ -81,7 +81,15 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/health", "/api/auth/login").permitAll()
-                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(
+                        "/api/users/**",
+                        "/api/suppliers/**",
+                        "/api/purchase-orders/**",
+                        "/api/reports/**",
+                        "/api/backup/**",
+                        "/api/schools/**",
+                        "/api/school-orders/**"
+                ).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/products/**")
                         .hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/products/**").hasRole("ADMIN")
