@@ -10,4 +10,4 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: create-drop
-    show-sql: false
+    show-sql: true
