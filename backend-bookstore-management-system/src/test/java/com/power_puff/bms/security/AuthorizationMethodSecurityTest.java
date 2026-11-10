@@ -27,11 +27,11 @@ class AuthorizationMethodSecurityTest {
     private UserController userController;
 
     @Autowired
-    private ProductRepository productRepository;
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void cleanProducts() {
-        productRepository.deleteAllInBatch();
+        jdbcTemplate.update("DELETE FROM products");
     }
 
     @Test
@@ -64,6 +64,7 @@ class AuthorizationMethodSecurityTest {
         var response = productController.create(request);
 
         assertTrue(response.getBody().success());
-        assertTrue(productRepository.existsBySkuIgnoreCase("AUTH-2"));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM products WHERE sku = ?", Integer.class, "AUTH-2"));
     }
 }
