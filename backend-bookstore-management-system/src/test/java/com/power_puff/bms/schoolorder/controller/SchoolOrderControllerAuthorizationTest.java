@@ -24,6 +24,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -107,6 +108,22 @@ class SchoolOrderControllerAuthorizationTest {
         assertEquals(1, schoolOrderRepository.findAllBySchoolIdOrderByOrderDateDesc(
                 schoolId).size());
 
+        mockMvc.perform(patch("/api/school-orders/{id}/status", createdOrderId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"READY"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("READY"));
+
+        mockMvc.perform(patch("/api/school-orders/{id}/status", createdOrderId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"DELIVERED"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("DELIVERED"));
+
         mockMvc.perform(get("/api/school-orders/{id}/quotation", createdOrderId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -125,6 +142,13 @@ class SchoolOrderControllerAuthorizationTest {
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(get("/api/school-orders"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/school-orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"READY"}
+                                """))
                 .andExpect(status().isForbidden());
     }
 }
