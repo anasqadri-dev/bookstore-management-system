@@ -11,6 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error("Request validation failed", errors));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest(
+            HttpMessageNotReadableException exception) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error("Request body is missing or contains an invalid value."));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
