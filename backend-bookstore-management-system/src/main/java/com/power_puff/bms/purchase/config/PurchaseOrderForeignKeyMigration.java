@@ -155,8 +155,8 @@ public class PurchaseOrderForeignKeyMigration implements ApplicationRunner {
     }
 
     private void verifyNoForeignKeyViolations(Statement statement) throws SQLException {
-        assertNoForeignKeyViolations(statement, "purchase_orders_new");
-        assertNoForeignKeyViolations(statement, "purchase_order_items_new");
+        assertNoForeignKeyViolations(statement, "purchase_orders");
+        assertNoForeignKeyViolations(statement, "purchase_order_items");
     }
 
     private void assertNoForeignKeyViolations(Statement statement, String tableName)
