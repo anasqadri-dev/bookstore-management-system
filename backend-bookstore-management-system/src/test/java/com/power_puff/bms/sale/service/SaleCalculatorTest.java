@@ -30,6 +30,18 @@ class SaleCalculatorTest {
     }
 
     @Test
+    void matchesSrsHandCalculationForTwoHundredAndFiftyRupees() {
+        BigDecimal twoBooks = calculator.calculateSubtotal(
+                new BigDecimal("100.00"), 2);
+        BigDecimal oneBook = calculator.calculateSubtotal(
+                new BigDecimal("50.00"), 1);
+
+        BigDecimal total = calculator.calculateTotal(List.of(twoBooks, oneBook));
+
+        assertEquals(0, new BigDecimal("250.00").compareTo(total));
+    }
+
+    @Test
     void returnsTwoDecimalZeroForAnEmptySubtotalCollection() {
         BigDecimal total = calculator.calculateTotal(List.of());
 
