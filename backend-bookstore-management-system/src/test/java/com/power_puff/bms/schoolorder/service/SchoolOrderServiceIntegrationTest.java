@@ -123,6 +123,92 @@ class SchoolOrderServiceIntegrationTest {
     }
 
     @Test
+    void rejectsSchoolOrderWhenRequestedQuantityExceedsAvailableStock() {
+        String suffix = UUID.randomUUID().toString();
+        School school = schoolRepository.saveAndFlush(new School(
+                "Insufficient Stock School " + suffix, null, null, null));
+        schoolId = school.getId();
+
+        User user = userRepository.saveAndFlush(new User(
+                "insufficient-stock-" + suffix, "test-hash",
+                "Order Admin", UserRole.ADMIN));
+        userId = user.getId();
+
+        Product product = productRepository.saveAndFlush(new Product(
+                "INSUFFICIENT-" + suffix, "Limited School Book", null,
+                new BigDecimal("30.00"), 2, 1));
+        productId = product.getId();
+
+        long ordersBefore = schoolOrderRepository.count();
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> schoolOrderService.create(
+                        new SchoolOrderRequest(schoolId, List.of(
+                                new SchoolOrderItemRequest(productId, 3))),
+                        user.getUsername()));
+
+        assertTrue(exception.getMessage().contains("Insufficient stock"));
+        assertEquals(2, productRepository.findById(productId).orElseThrow().getQuantity());
+        assertEquals(ordersBefore, schoolOrderRepository.count());
+        assertTrue(schoolOrderRepository.findAllBySchoolIdOrderByOrderDateDesc(schoolId).isEmpty());
+    }
+
+    @Test
+    void checksAggregatedQuantityAcrossRepeatedProductRows() {
+        String suffix = UUID.randomUUID().toString();
+        School school = schoolRepository.saveAndFlush(new School(
+                "Repeated Quantity School " + suffix, null, null, null));
+        schoolId = school.getId();
+
+        User user = userRepository.saveAndFlush(new User(
+                "repeated-quantity-" + suffix, "test-hash",
+                "Order Admin", UserRole.ADMIN));
+        userId = user.getId();
+
+        Product product = productRepository.saveAndFlush(new Product(
+                "REPEATED-" + suffix, "Repeated Quantity Book", null,
+                new BigDecimal("10.00"), 3, 1));
+        productId = product.getId();
+
+        long ordersBefore = schoolOrderRepository.count();
+        assertThrows(IllegalArgumentException.class,
+                () -> schoolOrderService.create(
+                        new SchoolOrderRequest(schoolId, List.of(
+                                new SchoolOrderItemRequest(productId, 2),
+                                new SchoolOrderItemRequest(productId, 2))),
+                        user.getUsername()));
+
+        assertEquals(3, productRepository.findById(productId).orElseThrow().getQuantity());
+        assertEquals(ordersBefore, schoolOrderRepository.count());
+    }
+
+    @Test
+    void allowsSchoolOrderWhenRequestedQuantityExactlyMatchesAvailableStock() {
+        String suffix = UUID.randomUUID().toString();
+        School school = schoolRepository.saveAndFlush(new School(
+                "Exact Stock School " + suffix, null, null, null));
+        schoolId = school.getId();
+
+        User user = userRepository.saveAndFlush(new User(
+                "exact-school-stock-" + suffix, "test-hash",
+                "Order Admin", UserRole.ADMIN));
+        userId = user.getId();
+
+        Product product = productRepository.saveAndFlush(new Product(
+                "EXACT-STOCK-" + suffix, "Exact Stock School Book", null,
+                new BigDecimal("25.00"), 4, 1));
+        productId = product.getId();
+
+        SchoolOrderResponse response = schoolOrderService.create(
+                new SchoolOrderRequest(schoolId, List.of(
+                        new SchoolOrderItemRequest(productId, 4))),
+                user.getUsername());
+        schoolOrderId = response.id();
+
+        assertEquals(4, response.items().getFirst().quantity());
+        assertEquals(4, productRepository.findById(productId).orElseThrow().getQuantity());
+    }
+
+    @Test
     void rejectsSchoolOrderWithoutItems() {
         assertThrows(IllegalArgumentException.class,
                 () -> schoolOrderService.create(new SchoolOrderRequest(1, List.of()), "admin"));
