@@ -44,7 +44,9 @@ The API listens on port 8080 by default.
 .\mvnw.cmd clean test
 ```
 
-Tests use the test-resource SQLite in-memory database configuration. They must not write to the shop's `data/bookstore.db` file.
+Tests use an isolated SQLite test configuration. They must not write to the shop's `data/bookstore.db` file.
+
+The SQLite file-persistence test uses a separate database under `target/` and verifies a committed row through a fresh SQLite connection. For a manual full application restart check, start the backend, create a product through `POST /api/products`, stop the backend normally, start it again, and retrieve the same product through `GET /api/products/{id}`. The production datasource is configured as `jdbc:sqlite:./data/bookstore.db`.
 
 ## Initial Admin account provisioning
 
