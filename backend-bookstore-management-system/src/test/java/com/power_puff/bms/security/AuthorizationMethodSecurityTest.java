@@ -31,7 +31,7 @@ class AuthorizationMethodSecurityTest {
 
     @BeforeEach
     void cleanProducts() {
-        productRepository.deleteAll();
+        productRepository.deleteAllInBatch();
     }
 
     @Test
