@@ -2,12 +2,13 @@ package com.power_puff.bms;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class BackendBookstoreManagementSystemApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void contextLoadsWithIsolatedSqliteTestProfile() {
+    }
 }
