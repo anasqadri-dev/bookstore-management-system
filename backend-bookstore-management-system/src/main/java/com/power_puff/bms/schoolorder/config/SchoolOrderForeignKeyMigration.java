@@ -35,7 +35,7 @@ public class SchoolOrderForeignKeyMigration implements ApplicationRunner {
     }
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run(ApplicationArguments args) throws Exception {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
             statement.execute("PRAGMA foreign_keys=OFF");
