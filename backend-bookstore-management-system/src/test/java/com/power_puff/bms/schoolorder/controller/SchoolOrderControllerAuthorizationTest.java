@@ -132,6 +132,18 @@ class SchoolOrderControllerAuthorizationTest {
     }
 
     @Test
+    @WithMockUser(username = "order-status-admin", roles = "ADMIN")
+    void rejectsUnsupportedSchoolOrderStatusValuesAsBadRequest() throws Exception {
+        mockMvc.perform(patch("/api/school-orders/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"CANCELLED"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
     @WithMockUser(username = "order-controller-staff", roles = "STAFF")
     void staffCannotCreateOrListSchoolOrders() throws Exception {
         mockMvc.perform(post("/api/school-orders")
