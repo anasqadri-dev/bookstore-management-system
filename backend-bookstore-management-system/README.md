@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The backend is a local Spring Boot REST API for the single-store, offline desktop application. It uses Java 25, Spring Boot 4.1.2, Spring Data JPA, Hibernate, and SQLite.
+The backend is a local Spring Boot REST API for the single-store, offline desktop application. It uses Java 25, Spring Boot 4.1.2, Spring Data JPA, Hibernate, Spring Security, and SQLite.
 
 The code follows the SDS four-layer design:
 
@@ -46,11 +46,27 @@ The API listens on port 8080 by default.
 
 Tests use the test-resource SQLite in-memory database configuration. They must not write to the shop's `data/bookstore.db` file.
 
+## Initial Admin account provisioning
+
+Admin bootstrap is disabled by default. For first-time setup only, set these environment variables in the same PowerShell session before starting the backend:
+
+```powershell
+$env:BMS_BOOTSTRAP_ADMIN_ENABLED = "true"
+$env:BMS_BOOTSTRAP_ADMIN_USERNAME = "admin"
+$env:BMS_BOOTSTRAP_ADMIN_PASSWORD = "replace-with-a-strong-local-password"
+$env:BMS_BOOTSTRAP_ADMIN_FULL_NAME = "Store Administrator"
+.\mvnw.cmd spring-boot:run
+```
+
+The bootstrap creates an Admin only when the users table is empty. The password is BCrypt-hashed before persistence and is never logged. After the first successful startup, remove the bootstrap environment variables or set `BMS_BOOTSTRAP_ADMIN_ENABLED` to `false`. Existing user databases are never overwritten.
+
 ## API conventions
 
 Successful and failed controller responses use `ApiResponse<T>` with `success`, `message`, and `data` fields. Validation errors return HTTP 400, missing resources 404, data conflicts 409, unauthenticated requests 401, and forbidden requests 403.
 
-All request DTOs must validate untrusted input at the controller boundary with Jakarta Bean Validation. Services must enforce business invariants again where those invariants protect data integrity.
+Login creates a server-side session. The desktop frontend must retain the session cookie and send it on subsequent requests. Logout invalidates that session.
+
+All request DTOs validate untrusted input at the controller boundary with Jakarta Bean Validation. Services enforce business invariants again where those invariants protect data integrity.
 
 ## Quality rules
 
@@ -58,4 +74,4 @@ All request DTOs must validate untrusted input at the controller boundary with J
 - Add automated tests for new business behavior and boundary conditions.
 - Use transactions for multi-row business operations.
 - Never persist or log plain-text passwords.
-- Do not add fields or workflows that are absent from the approved SRS/SDS without documenting an agreed scope change.
+- Do not add fields or workflows absent from the approved SRS/SDS without documenting an agreed scope change.
