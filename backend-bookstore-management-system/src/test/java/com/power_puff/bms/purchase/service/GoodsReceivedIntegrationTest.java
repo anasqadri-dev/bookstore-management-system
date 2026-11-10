@@ -19,6 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -59,9 +60,13 @@ class GoodsReceivedIntegrationTest {
     private Integer supplierId;
     private Integer productId;
     private Long userId;
+    private boolean stockFailureTriggerCreated;
 
     @AfterEach
     void cleanUp() {
+        if (stockFailureTriggerCreated) {
+            jdbcTemplate.execute("DROP TRIGGER IF EXISTS purchasing_test_fail_stock_update");
+        }
         entityManager.clear();
         if (purchaseOrderId != null) {
             jdbcTemplate.update(
@@ -143,6 +148,35 @@ class GoodsReceivedIntegrationTest {
         entityManager.clear();
         assertEquals(Integer.MAX_VALUE - 1,
                 productRepository.findById(productId).orElseThrow().getQuantity());
+        var saved = purchaseOrderRepository.findById(purchaseOrderId).orElseThrow();
+        assertEquals(PurchaseOrderStatus.ORDERED, saved.getStatus());
+        assertEquals(null, saved.getReceivedDate());
+    }
+
+    @Test
+    void rollsBackReceivedStatusAndStockWhenStockPersistenceFails() {
+        String suffix = UUID.randomUUID().toString();
+        createSupplierUserAndProduct(suffix, 8);
+
+        PurchaseOrderResponse created = createPurchaseOrder(List.of(
+                new PurchaseOrderItemRequest(productId, 3, new BigDecimal("20.00"))));
+        purchaseOrderId = created.id();
+
+        jdbcTemplate.execute("""
+                CREATE TRIGGER purchasing_test_fail_stock_update
+                BEFORE UPDATE OF quantity ON products
+                WHEN OLD.id = %d
+                BEGIN
+                    SELECT RAISE(ABORT, 'simulated inventory write failure');
+                END
+                """.formatted(productId));
+        stockFailureTriggerCreated = true;
+
+        assertThrows(DataAccessException.class,
+                () -> purchaseOrderService.receiveGoods(purchaseOrderId));
+
+        entityManager.clear();
+        assertEquals(8, productRepository.findById(productId).orElseThrow().getQuantity());
         var saved = purchaseOrderRepository.findById(purchaseOrderId).orElseThrow();
         assertEquals(PurchaseOrderStatus.ORDERED, saved.getStatus());
         assertEquals(null, saved.getReceivedDate());

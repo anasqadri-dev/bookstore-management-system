@@ -146,7 +146,7 @@ Admin-only endpoints:
 - `GET /api/purchase-orders/{id}` — retrieve one purchase order.
 - `POST /api/purchase-orders/{id}/receive` — record goods received for an `ORDERED` purchase order.
 
-A purchase order request contains a `supplierId` and a non-empty `items` array. Each item contains `productId`, `quantity`, and `unitCost`. The unit cost is the supplier purchase cost and is stored separately from the product's retail price. New purchase orders start with status `ORDERED`.
+A purchase order request contains a `supplierId` and a non-empty `items` array. Each item contains `productId`, `quantity`, and `unitCost`. The unit cost is the supplier purchase cost and is stored separately from the product's retail price. New purchase orders start with status `ORDERED`; after goods receipt, the status is `RECEIVED` and `receivedDate` is recorded.
 
 Example request:
 
@@ -160,15 +160,16 @@ Example request:
 }
 ```
 
-The receive action marks the order `RECEIVED`, records `receivedDate`, and increases each product's stock by the quantities saved on the purchase-order items. These changes are committed together. Receiving an order more than once returns HTTP 409 and does not increase stock again.
+The receive action marks the order `RECEIVED`, records `receivedDate`, and increases each product's stock by the quantities saved on the purchase-order items. The status/date update and all stock changes are committed in one transaction; if any stock update fails, the transaction rolls back. Receiving an order more than once returns HTTP 409 and does not increase stock again.
 
 ### Purchase-order error cases
 
 | Situation | HTTP status | Response behavior |
 |---|---:|---|
-| Supplier id or item data is missing/invalid | 400 | The request is rejected. |
-| A referenced supplier or product does not exist | 404 | The response identifies the missing resource. |
+| Supplier id or item data is missing/invalid, including a non-positive quantity or unit cost | 400 | The request is rejected and no purchase order is saved. |
+| A referenced supplier or product does not exist | 404 | The response identifies the missing resource and no purchase order is saved. |
 | The purchase order does not exist | 404 | The response reports that the purchase order was not found. |
+| Received quantities would exceed the supported stock range | 400 | The receipt is rejected; the order stays ORDERED and stock remains unchanged. |
 | Goods have already been received for the order | 409 | The repeated receive request is rejected; stock remains unchanged. |
 | The caller is not an Admin | 403 | Purchase-order endpoints are forbidden. |
 
