@@ -1,5 +1,6 @@
 package com.power_puff.bms.product.service;
 
+import com.power_puff.bms.activitylog.service.ActivityLogService;
 import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.common.exception.ResourceNotFoundException;
 import com.power_puff.bms.product.dto.ProductRequest;
@@ -29,6 +30,9 @@ class ProductServiceTest {
 
     @Mock
     private ProductUsageChecker productUsageChecker;
+
+    @Mock
+    private ActivityLogService activityLogService;
 
     @InjectMocks
     private ProductService productService;
@@ -100,6 +104,7 @@ class ProductServiceTest {
         productService.delete(20L);
 
         verify(productRepository).delete(existing);
+        verify(activityLogService).recordCurrentUserAction("DELETE", "Deleted product id=20");
     }
 
     @Test
