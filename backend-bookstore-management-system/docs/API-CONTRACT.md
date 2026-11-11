@@ -36,6 +36,17 @@ Login uses an HTTP session. Desktop UI requests after login must retain and send
 
 Product fields follow the SDS data dictionary: `id`, `sku`, `title`, optional `author`, `price`, `quantity`, and `min_stock` (JSON field `minStock`). No category field is introduced because it is not in the SDS product data dictionary.
 
+## Reports
+
+Admin-only endpoints:
+
+- `GET /api/reports/sales?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` — return sales within the inclusive date range, including total sale count, total amount, and individual sale rows.
+- `GET /api/reports/inventory` — return product quantities, low-stock counts, stock valuation, and product rows.
+
+Both endpoints require an authenticated Admin session. Staff and unauthenticated callers are denied.
+
+For the sales report, both dates are required and must use ISO `YYYY-MM-DD` format. The start date must not be after the end date. Invalid or missing date parameters and reversed date ranges return HTTP 400 using the standard API error envelope.
+
 ## Sales / POS
 
 Admin and Staff:
