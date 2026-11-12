@@ -1,5 +1,6 @@
 package com.power_puff.bms.product.service;
 
+import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.repository.ProductRepository;
 import com.power_puff.bms.sale.dto.SaleItemRequest;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -112,12 +114,6 @@ class StockMutationConcurrencyIntegrationTest {
 
             assertEquals(1, successfulSales,
                     "Exactly one checkout may consume the final available unit.");
-            if (firstSaleId > 0) {
-                assertEquals(0, firstSaleId <= 0 ? 0 : 1);
-            }
-            if (secondSaleId > 0) {
-                assertEquals(0, secondSaleId <= 0 ? 0 : 1);
-            }
         }
 
         assertEquals(0, productRepository.findById(productId).orElseThrow().getQuantity());
@@ -132,6 +128,7 @@ class StockMutationConcurrencyIntegrationTest {
     }
 
     @Test
+    @Transactional
     void conditionalStockMutationsEnforceAvailabilityAndIntegerBoundaries() {
         String suffix = UUID.randomUUID().toString();
         Product book = productRepository.saveAndFlush(new Product(
@@ -169,11 +166,8 @@ class StockMutationConcurrencyIntegrationTest {
                             List.of(new SaleItemRequest(requestedProductId, 1))),
                     username);
             return receipt.id();
-        } catch (IllegalArgumentException | DataAccessException exception) {
-            return -1;
-        } catch (RuntimeException conflict) {
-            // DuplicateResourceException and database lock conflicts are expected
-            // losing outcomes when another checkout has already claimed the stock.
+        } catch (IllegalArgumentException | DataAccessException | DuplicateResourceException conflict) {
+            // Stock validation or a competing database update may reject the losing checkout.
             return -1;
         }
     }
