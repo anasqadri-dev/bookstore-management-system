@@ -183,7 +183,7 @@ export default function BooksInventory() {
                                 Price (Rs.)
                             </label>
                             <input
-                                id="inventory-price"    
+                                id="inventory-price"
                                 type="number"
                                 min="0.01"
                                 step="0.01"
