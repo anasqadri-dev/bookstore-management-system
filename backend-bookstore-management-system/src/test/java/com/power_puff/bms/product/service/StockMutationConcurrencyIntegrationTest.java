@@ -3,6 +3,7 @@ package com.power_puff.bms.product.service;
 import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.repository.ProductRepository;
+import jakarta.persistence.EntityManager;
 import com.power_puff.bms.sale.dto.SaleItemRequest;
 import com.power_puff.bms.sale.dto.SaleReceiptResponse;
 import com.power_puff.bms.sale.dto.SaleRequest;
@@ -54,6 +55,9 @@ class StockMutationConcurrencyIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private Integer productId;
     private Long userId;
@@ -148,6 +152,7 @@ class StockMutationConcurrencyIntegrationTest {
         assertEquals(0, productRepository.incrementStockIfWithinRange(
                 productId, Integer.MAX_VALUE, 0));
 
+        entityManager.clear();
         assertEquals(2, productRepository.findById(productId).orElseThrow().getQuantity());
     }
 
