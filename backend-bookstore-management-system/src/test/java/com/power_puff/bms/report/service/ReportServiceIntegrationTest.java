@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -71,10 +72,10 @@ class ReportServiceIntegrationTest {
         LocalDate endDate = startDate.plusDays(1);
         ZoneId zone = ZoneId.systemDefault();
 
-        createSale(
+        Sale openingDaySale = createSale(
                 startDate.atStartOfDay(zone).toInstant(),
                 "Opening Day Sale", new BigDecimal("12.50"), user);
-        createSale(
+        Sale closingDaySale = createSale(
                 endDate.atTime(23, 59, 59).atZone(zone).toInstant(),
                 "Closing Day Sale", new BigDecimal("27.50"), user);
         createSale(
@@ -85,10 +86,25 @@ class ReportServiceIntegrationTest {
                 "After Range Sale", new BigDecimal("200.00"), user);
 
         SalesReportResponse baseline = reportService.getSalesReport(startDate, endDate);
+        assertEquals(startDate, baseline.startDate());
+        assertEquals(endDate, baseline.endDate());
         assertEquals(2, baseline.totalSales());
         assertEquals(0, new BigDecimal("40.00").compareTo(baseline.totalAmount()));
         assertEquals(2, baseline.sales().size());
-        assertEquals("Report Test Cashier", baseline.sales().getFirst().cashierName());
+
+        var firstRow = baseline.sales().getFirst();
+        assertEquals(closingDaySale.getId(), firstRow.saleId());
+        assertEquals(closingDaySale.getSaleDate(), firstRow.saleDate());
+        assertEquals("Closing Day Sale", firstRow.customerName());
+        assertEquals("Report Test Cashier", firstRow.cashierName());
+        assertEquals(0, new BigDecimal("27.50").compareTo(firstRow.totalAmount()));
+
+        var secondRow = baseline.sales().getLast();
+        assertEquals(openingDaySale.getId(), secondRow.saleId());
+        assertEquals(openingDaySale.getSaleDate(), secondRow.saleDate());
+        assertEquals("Opening Day Sale", secondRow.customerName());
+        assertEquals("Report Test Cashier", secondRow.cashierName());
+        assertEquals(0, new BigDecimal("12.50").compareTo(secondRow.totalAmount()));
     }
 
     @Test
@@ -136,15 +152,27 @@ class ReportServiceIntegrationTest {
                 .findFirst()
                 .orElseThrow();
 
+        assertEquals("REPORT-A-" + suffix, regularLine.sku());
+        assertEquals("Report Regular Stock", regularLine.title());
+        assertEquals(null, regularLine.author());
+        assertEquals(0, new BigDecimal("25.00").compareTo(regularLine.price()));
+        assertEquals(4, regularLine.quantity());
+        assertEquals(1, regularLine.minStock());
         assertEquals(0, new BigDecimal("100.00").compareTo(regularLine.stockValue()));
+        assertEquals("REPORT-B-" + suffix, lowStockLine.sku());
+        assertEquals("Report Low Stock", lowStockLine.title());
+        assertEquals(0, new BigDecimal("10.50").compareTo(lowStockLine.price()));
+        assertEquals(1, lowStockLine.quantity());
+        assertEquals(2, lowStockLine.minStock());
         assertEquals(0, new BigDecimal("10.50").compareTo(lowStockLine.stockValue()));
-        assertEquals(true, lowStockLine.lowStock());
+        assertTrue(lowStockLine.lowStock());
     }
 
-    private void createSale(Instant saleDate, String customerName,
+    private Sale createSale(Instant saleDate, String customerName,
                             BigDecimal totalAmount, User user) {
         Sale sale = saleRepository.saveAndFlush(
                 new Sale(saleDate, customerName, totalAmount, user));
         saleIds.add(sale.getId());
+        return sale;
     }
 }
