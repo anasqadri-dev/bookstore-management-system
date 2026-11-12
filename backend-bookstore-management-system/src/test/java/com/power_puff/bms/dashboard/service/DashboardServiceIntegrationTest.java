@@ -75,8 +75,8 @@ class DashboardServiceIntegrationTest {
         assertEquals(before.totalBooks() + 2, dashboard.totalBooks());
         assertEquals(before.suppliers() + 1, dashboard.suppliers());
         assertEquals(before.lowStock() + 1, dashboard.lowStock());
-        assertEquals(before.todaySales().add(new BigDecimal("65.75")),
-                dashboard.todaySales());
+        assertEquals(0, before.todaySales().add(new BigDecimal("65.75"))
+                .compareTo(dashboard.todaySales()));
 
         assertFalse(dashboard.recentSales().isEmpty());
         assertEquals(newestToday.getId(), dashboard.recentSales().get(0).saleId());
