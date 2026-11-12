@@ -147,10 +147,11 @@ export default function BooksInventory() {
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
-                            <label className="mb-2 block text-sm">
+                            <label htmlFor="inventory-book-name" className="mb-2 block text-sm">
                                 Book Name
                             </label>
                             <input
+                                id="inventory-book-name"
                                 type="text"
                                 value={form.title}
                                 onChange={(e) =>
@@ -162,10 +163,11 @@ export default function BooksInventory() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm">
+                            <label htmlFor="inventory-author" className="mb-2 block text-sm">
                                 Author
                             </label>
                             <input
+                                id="inventory-author"
                                 type="text"
                                 value={form.author}
                                 onChange={(e) =>
@@ -177,10 +179,11 @@ export default function BooksInventory() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm">
+                            <label htmlFor="inventory-price" className="mb-2 block text-sm">
                                 Price (Rs.)
                             </label>
                             <input
+                                id="inventory-price"    
                                 type="number"
                                 min="0.01"
                                 step="0.01"
@@ -194,10 +197,11 @@ export default function BooksInventory() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm">
+                            <label htmlFor="inventory-quantity"  className="mb-2 block text-sm">
                                 Quantity
                             </label>
                             <input
+                                id="inventory-quantity"
                                 type="number"
                                 min="0"
                                 step="1"
@@ -234,6 +238,8 @@ export default function BooksInventory() {
             <div className="mb-5">
                 <input
                     type="text"
+                    id="search-books"
+                    aria-label="Search books by name or author"
                     placeholder="Search by book name or author"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}

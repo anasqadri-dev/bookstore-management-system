@@ -92,8 +92,9 @@ export default function SalesPOS() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                        <label className="mb-2 block text-sm">Customer Name</label>
+                        <label  htmlFor="sales-customer-name" className="mb-2 block text-sm">Customer Name</label>
                         <input
+                            id="sales-customer-name"
                             type="text"
                             placeholder="Enter customer name"
                             value={customer}
@@ -103,8 +104,9 @@ export default function SalesPOS() {
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm">Select Book</label>
+                        <label  htmlFor="sales-book" className="mb-2 block text-sm">Select Book</label>
                         <select
+                            id="sales-book"
                             value={selectedBook}
                             onChange={(e) => setSelectedBook(e.target.value)}
                             className="w-full rounded border border-gray-300 bg-white p-3"
@@ -119,8 +121,9 @@ export default function SalesPOS() {
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm">Quantity</label>
+                        <label htmlFor="sales-quantity" className="mb-2 block text-sm">Quantity</label>
                         <input
+                            id="sales-quantity" 
                             type="number"
                             min="1"
                             step="1"
