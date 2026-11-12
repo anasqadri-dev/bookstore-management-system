@@ -55,7 +55,33 @@ export default function PurchaseOrders() {
         }
     }, []);
 
-    useEffect(() => { void loadData(); }, [loadData]);
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadInitialData() {
+            try {
+                const [saved, availableSuppliers, availableProducts] = await Promise.all([
+                    apiRequest<PurchaseOrder[]>("/api/purchase-orders"),
+                    apiRequest<Supplier[]>("/api/suppliers"),
+                    apiRequest<Product[]>("/api/products"),
+                ]);
+                if (!cancelled) {
+                    setOrders(saved);
+                    setSuppliers(availableSuppliers);
+                    setProducts(availableProducts);
+                }
+            } catch (cause) {
+                if (!cancelled) {
+                    setError(cause instanceof Error ? cause.message : "Unable to load purchase orders.");
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        void loadInitialData();
+        return () => { cancelled = true; };
+    }, []);
 
     function resetForm() {
         setSupplierId("");
