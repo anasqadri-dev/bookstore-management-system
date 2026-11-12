@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,7 +62,7 @@ class UserAdministrationControllerTest {
     void adminCanCreateAndListStaffWithoutExposingPasswordHash() throws Exception {
         String username = "ApiStaff" + UUID.randomUUID().toString().replace("-", "");
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/users").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -98,7 +99,7 @@ class UserAdministrationControllerTest {
     void adminCanUpdateAndDeactivateStaffWithoutDeletingTheRecord() throws Exception {
         User staff = createStaff("update-" + UUID.randomUUID());
 
-        mockMvc.perform(put("/api/users/{id}", staff.getId())
+        mockMvc.perform(put("/api/users/{id}", staff.getId()).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -115,7 +116,7 @@ class UserAdministrationControllerTest {
         User updated = userRepository.findById(staff.getId()).orElseThrow();
         assertTrue(passwordEncoder.matches("ChangedPass123", updated.getPasswordHash()));
 
-        mockMvc.perform(delete("/api/users/{id}", staff.getId()))
+        mockMvc.perform(delete("/api/users/{id}", staff.getId()).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.active").value(false));
@@ -133,7 +134,7 @@ class UserAdministrationControllerTest {
         User existing = createStaff(username);
         long before = userRepository.count();
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/users").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -146,7 +147,7 @@ class UserAdministrationControllerTest {
                 .andExpect(jsonPath("$.success").value(false));
 
         String invalidUsername = "invalid-" + UUID.randomUUID();
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/users").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -171,7 +172,7 @@ class UserAdministrationControllerTest {
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/users").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -182,14 +183,14 @@ class UserAdministrationControllerTest {
                                 """))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(put("/api/users/{id}", target.getId())
+        mockMvc.perform(put("/api/users/{id}", target.getId()).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"fullName":"Must Not Update","newPassword":null,"active":false}
                                 """))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(delete("/api/users/{id}", target.getId()))
+        mockMvc.perform(delete("/api/users/{id}", target.getId()).with(csrf()))
                 .andExpect(status().isForbidden());
 
         User unchanged = userRepository.findById(target.getId()).orElseThrow();
@@ -202,7 +203,7 @@ class UserAdministrationControllerTest {
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/users").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"username":"anonymous","password":"SecurePass123",
