@@ -13,7 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -128,7 +128,8 @@ class ActivityLogWorkflowIntegrationTest {
         productService.delete(product.getId());
 
         assertEquals(1, countActivity(user.getId(), "DELETE"));
-        assertEquals(0, productRepository.countByIdForTest(product.getId()));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM products WHERE id = ?", Integer.class, product.getId()));
     }
 
     private User createUser(String username, String fullName) {
