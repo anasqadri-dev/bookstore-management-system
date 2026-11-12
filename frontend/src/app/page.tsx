@@ -9,6 +9,8 @@ import Suppliers from "../components/Suppliers";
 import SchoolOrders from "../components/SchoolOrders";
 import Reports from "../components/Reports";
 import Settings from "../components/Settings";
+import SalesHistory from "../components/SalesHistory";
+import PurchaseOrders from "../components/PurchaseOrders";
 
 export default function Home() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,6 +21,8 @@ export default function Home() {
         { name: "Books Inventory", icon: "▤" },
         { name: "Sales / POS", icon: "🛒" },
         { name: "Suppliers", icon: "▱" },
+        { name: "Sales History", icon: "▤" },
+        { name: "Purchase Orders", icon: "▦" },
         { name: "School Orders", icon: "♧" },
         { name: "Reports", icon: "▥" },
         { name: "Settings", icon: "⚙" },
@@ -164,6 +168,7 @@ export default function Home() {
                             </div>
                         </section>
                     </>
+
                 ) : activePage === "Books Inventory" ? (
                     <BooksInventory />
                 ) : activePage === "Suppliers" ? (
@@ -172,11 +177,16 @@ export default function Home() {
                     <SchoolOrders />
                 ) : activePage === "Sales / POS" ? (
                     <SalesPOS />
+                ) : activePage === "Sales History" ? (
+                    <SalesHistory />
+                ) : activePage === "Purchase Orders" ? (
+                    <PurchaseOrders />
                 ) : activePage === "Reports" ? (
                     <Reports />
                 ) : activePage === "Settings" ? (
                     <Settings />
                 ) : (
+
                     <section className="rounded border border-gray-200 bg-white p-6">
                         <h3 className="text-xl font-semibold">
                             {activePage}
