@@ -68,8 +68,12 @@ public class BackupPathValidator {
                     "Backup source must be an existing, readable regular file.");
         }
 
-        if (Files.size(source) == 0) {
-            throw new IllegalArgumentException("Backup file is empty.");
+        try {
+            if (Files.size(source) == 0) {
+                throw new IllegalArgumentException("Backup file is empty.");
+            }
+        } catch (java.io.IOException exception) {
+            throw new IllegalArgumentException("Backup file size could not be verified.", exception);
         }
 
         String fileName = source.getFileName() == null
