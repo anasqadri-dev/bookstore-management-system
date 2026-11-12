@@ -1,4 +1,7 @@
 spring:
+  sql:
+    init:
+      mode: always
   application:
     name: backend-bookstore-management-system
   datasource:
@@ -10,7 +13,7 @@ spring:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
