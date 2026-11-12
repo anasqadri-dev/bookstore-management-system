@@ -6,6 +6,7 @@ import com.power_puff.bms.report.dto.SalesReportItemResponse;
 import com.power_puff.bms.sale.entity.Sale;
 import com.power_puff.bms.sale.repository.SaleRepository;
 import com.power_puff.bms.supplier.repository.SupplierRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,20 +22,22 @@ public class DashboardService {
     private final ProductRepository productRepository;
     private final SaleRepository saleRepository;
     private final SupplierRepository supplierRepository;
+    private final ZoneId businessTimeZone;
 
     public DashboardService(ProductRepository productRepository,
                             SaleRepository saleRepository,
-                            SupplierRepository supplierRepository) {
+                            SupplierRepository supplierRepository,
+                            @Value("${bms.business-time-zone:Asia/Karachi}") String businessTimeZone) {
         this.productRepository = productRepository;
         this.saleRepository = saleRepository;
         this.supplierRepository = supplierRepository;
+        this.businessTimeZone = ZoneId.of(businessTimeZone);
     }
 
     public DashboardResponse getDashboard() {
-        ZoneId shopTimeZone = ZoneId.systemDefault();
-        LocalDate today = LocalDate.now(shopTimeZone);
-        var startInclusive = today.atStartOfDay(shopTimeZone).toInstant();
-        var endExclusive = today.plusDays(1).atStartOfDay(shopTimeZone).toInstant();
+        LocalDate today = LocalDate.now(businessTimeZone);
+        var startInclusive = today.atStartOfDay(businessTimeZone).toInstant();
+        var endExclusive = today.plusDays(1).atStartOfDay(businessTimeZone).toInstant();
 
         BigDecimal todaySales = saleRepository
                 .sumTotalAmountBetween(startInclusive, endExclusive);
