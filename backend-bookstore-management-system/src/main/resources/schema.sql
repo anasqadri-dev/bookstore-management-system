@@ -94,5 +94,5 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     user_id INTEGER NOT NULL REFERENCES users(id),
     action VARCHAR(50) NOT NULL,
     details VARCHAR(1000),
-    created_at DATETIME NOT NULL
+    created_at TIMESTAMP NOT NULL
 );
