@@ -209,7 +209,7 @@ export default function SchoolOrders() {
                             </label>
 
                             <input
-                                id="order-contact"  
+                                id="order-contact"
                                 required
                                 placeholder="Enter contact number"
                                 value={form.contact}
@@ -229,7 +229,7 @@ export default function SchoolOrders() {
                             </label>
 
                             <input
-                                id="order-book-name"    
+                                id="order-book-name"
                                 required
                                 placeholder="Enter book name"
                                 value={form.bookName}
@@ -249,7 +249,7 @@ export default function SchoolOrders() {
                             </label>
 
                             <input
-                                id="order-quantity" 
+                                id="order-quantity"
                                 required
                                 type="number"
                                 min="1"
@@ -272,7 +272,7 @@ export default function SchoolOrders() {
                             </label>
 
                             <input
-                                id="order-price"    
+                                id="order-price"
                                 required
                                 type="number"
                                 min="0"
@@ -295,7 +295,7 @@ export default function SchoolOrders() {
                             </label>
 
                             <select
-                                id="order-status"   
+                                id="order-status"
                                 value={form.status}
                                 onChange={(e) =>
                                     setForm({
