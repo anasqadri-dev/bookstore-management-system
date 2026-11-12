@@ -1,450 +1,259 @@
-
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { apiRequest } from "../lib/api";
 
+type OrderStatus = "PENDING" | "READY" | "DELIVERED";
+type School = { id: number; name: string };
+type Product = { id: number; title: string; sku: string };
+type OrderItem = { productId: number; title: string; quantity: number; unitPrice: number };
 type SchoolOrder = {
     id: number;
+    schoolId: number;
     schoolName: string;
-    contact: string;
-    bookName: string;
-    quantity: number;
-    price: number;
-    status: "Pending" | "Processing" | "Delivered";
+    orderDate: string;
+    status: OrderStatus;
+    items: OrderItem[];
 };
+type Quotation = {
+    orderId: number;
+    schoolName: string;
+    orderDate: string;
+    items: Array<{ title: string; quantity: number; unitPrice: number; lineTotal: number }>;
+    totalAmount: number;
+};
+
+const statuses: OrderStatus[] = ["PENDING", "READY", "DELIVERED"];
 
 export default function SchoolOrders() {
     const [orders, setOrders] = useState<SchoolOrder[]>([]);
+    const [schools, setSchools] = useState<School[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [search, setSearch] = useState("");
     const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [schoolId, setSchoolId] = useState("");
+    const [productId, setProductId] = useState("");
+    const [quantity, setQuantity] = useState("1");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
+    const [error, setError] = useState("");
+    const [formError, setFormError] = useState("");
+    const [notice, setNotice] = useState("");
+    const [quotation, setQuotation] = useState<Quotation | null>(null);
 
-    const [form, setForm] = useState({
-        schoolName: "",
-        contact: "",
-        bookName: "",
-        quantity: "",
-        price: "",
-        status: "Pending" as SchoolOrder["status"],
-    });
+    const loadData = useCallback(async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const [savedOrders, registeredSchools, availableProducts] = await Promise.all([
+                apiRequest<SchoolOrder[]>("/api/school-orders"),
+                apiRequest<School[]>("/api/schools"),
+                apiRequest<Product[]>("/api/products"),
+            ]);
+            setOrders(savedOrders);
+            setSchools(registeredSchools);
+            setProducts(availableProducts);
+        } catch {
+            setError("Unable to load school orders. Check your connection and Admin permissions, then retry.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-    function resetForm() {
-        setForm({
-            schoolName: "",
-            contact: "",
-            bookName: "",
-            quantity: "",
-            price: "",
-            status: "Pending",
-        });
+    useEffect(() => { void loadData(); }, [loadData]);
 
-        setEditingId(null);
-        setShowForm(false);
-    }
-
-    function saveOrder(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-
-        const quantity = Number(form.quantity);
-        const price = Number(form.price);
-
-        if (quantity <= 0 || price < 0) {
-            alert("Please enter valid quantity and price.");
+    async function createOrder(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (saving) return;
+        const selectedSchool = Number(schoolId);
+        const selectedProduct = Number(productId);
+        const requestedQuantity = Number(quantity);
+        if (!selectedSchool || !selectedProduct || !Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+            setFormError("Select a school and product, and enter a positive whole-number quantity.");
             return;
         }
-
-        if (editingId !== null) {
-            setOrders(
-                orders.map((order) =>
-                    order.id === editingId
-                        ? { ...form, id: editingId, quantity, price }
-                        : order
-                )
-            );
-        } else {
-            const newOrder: SchoolOrder = {
-                ...form,
-                id: Date.now(),
-                quantity,
-                price,
-            };
-
-            setOrders([...orders, newOrder]);
-        }
-
-        resetForm();
-    }
-
-    function editOrder(order: SchoolOrder) {
-        setForm({
-            schoolName: order.schoolName,
-            contact: order.contact,
-            bookName: order.bookName,
-            quantity: String(order.quantity),
-            price: String(order.price),
-            status: order.status,
-        });
-
-        setEditingId(order.id);
-        setShowForm(true);
-    }
-
-    function deleteOrder(id: number) {
-        if (window.confirm("Delete this school order?")) {
-            setOrders(orders.filter((order) => order.id !== id));
+        setSaving(true);
+        setFormError("");
+        setNotice("");
+        try {
+            await apiRequest<SchoolOrder>("/api/school-orders", {
+                method: "POST",
+                body: JSON.stringify({
+                    schoolId: selectedSchool,
+                    items: [{ productId: selectedProduct, quantity: requestedQuantity }],
+                }),
+            });
+            setShowForm(false);
+            setSchoolId("");
+            setProductId("");
+            setQuantity("1");
+            setNotice("School order saved successfully.");
+            await loadData();
+        } catch {
+            setFormError("Could not save the order. Check stock, selection and your connection, then retry.");
+        } finally {
+            setSaving(false);
         }
     }
 
-    const filteredOrders = orders.filter(
-        (order) =>
-            order.schoolName.toLowerCase().includes(search.toLowerCase()) ||
-            order.bookName.toLowerCase().includes(search.toLowerCase())
+    async function changeStatus(order: SchoolOrder, status: OrderStatus) {
+        if (busyOrderId !== null || order.status === status) return;
+        if (!window.confirm(`Change order #${order.id} status to ${status}?`)) return;
+        setBusyOrderId(order.id);
+        setError("");
+        setNotice("");
+        try {
+            await apiRequest<SchoolOrder>(`/api/school-orders/${order.id}/status`, {
+                method: "PATCH",
+                body: JSON.stringify({ status }),
+            });
+            setNotice(`Order #${order.id} updated to ${status}.`);
+            await loadData();
+        } catch {
+            setError("Status update failed. Please retry after checking your connection and permissions.");
+        } finally {
+            setBusyOrderId(null);
+        }
+    }
+
+    async function viewQuotation(orderId: number) {
+        if (busyOrderId !== null) return;
+        setBusyOrderId(orderId);
+        setError("");
+        setQuotation(null);
+        try {
+            setQuotation(await apiRequest<Quotation>(`/api/school-orders/${orderId}/quotation`));
+        } catch {
+            setError("Could not retrieve the quotation. Please try again.");
+        } finally {
+            setBusyOrderId(null);
+        }
+    }
+
+    const filteredOrders = orders.filter((order) =>
+        order.schoolName.toLowerCase().includes(search.toLowerCase()) ||
+        order.items.some((item) => item.title.toLowerCase().includes(search.toLowerCase()))
     );
-
-    const totalAmount = orders.reduce(
-        (total, order) => total + order.quantity * order.price,
-        0
+    const pendingOrders = orders.filter((order) => order.status === "PENDING").length;
+    const totalAmount = orders.reduce((sum, order) =>
+        sum + order.items.reduce((lineSum, item) => lineSum + item.quantity * item.unitPrice, 0), 0
     );
-
-    const pendingOrders = orders.filter(
-        (order) => order.status === "Pending"
-    ).length;
-
-    const inputStyle =
-        "w-full rounded border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500";
 
     return (
-        <div className="space-y-8">
-
-            {/* Add Order Button */}
+        <div className="space-y-7">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <p className="text-sm text-gray-500">
-                    Manage book orders received from schools.
-                </p>
-
-                <button
-                    type="button"
-                    onClick={() => {
-                        resetForm();
-                        setShowForm(true);
-                    }}
-                    className="rounded bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                    + Add School Order
+                <p className="text-sm text-gray-600">Manage saved school orders. Editing and deleting orders are not supported by the current API.</p>
+                <button type="button" onClick={() => { setShowForm((value) => !value); setFormError(""); }}
+                    className="rounded bg-blue-600 px-5 py-3 text-white hover:bg-blue-700">
+                    {showForm ? "Cancel" : "+ Add School Order"}
                 </button>
             </div>
 
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {notice && <p role="status" className="rounded bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
+            {error && <div role="alert" className="rounded border border-red-200 bg-white p-4 text-red-700">
+                <p>{error}</p>
+                <button type="button" onClick={() => void loadData()} className="mt-2 underline">Retry loading</button>
+            </div>}
 
-                <div className="rounded border border-gray-200 bg-white p-6">
-                    <p className="text-gray-500">
-                        Total Orders
-                    </p>
-
-                    <h3 className="mt-5 text-3xl font-bold">
-                        {orders.length}
-                    </h3>
-                </div>
-
-                <div className="rounded border border-gray-200 bg-white p-6">
-                    <p className="text-gray-500">
-                        Pending Orders
-                    </p>
-
-                    <h3 className="mt-5 text-3xl font-bold">
-                        {pendingOrders}
-                    </h3>
-                </div>
-
-                <div className="rounded border border-gray-200 bg-white p-6">
-                    <p className="text-gray-500">
-                        Total Amount
-                    </p>
-
-                    <h3 className="mt-5 text-3xl font-bold">
-                        Rs. {totalAmount.toLocaleString()}
-                    </h3>
-                </div>
+            <div className="grid gap-5 sm:grid-cols-3">
+                <div className="rounded border bg-white p-6"><p>Total Orders</p><p className="mt-3 text-2xl font-bold">{orders.length}</p></div>
+                <div className="rounded border bg-white p-6"><p>Pending Orders</p><p className="mt-3 text-2xl font-bold">{pendingOrders}</p></div>
+                <div className="rounded border bg-white p-6"><p>Total Amount</p><p className="mt-3 text-2xl font-bold">Rs. {totalAmount.toLocaleString()}</p></div>
             </div>
 
-            {/* Add / Edit Order Form */}
             {showForm && (
-                <form
-                    onSubmit={saveOrder}
-                    className="rounded border border-gray-200 bg-white p-6"
-                >
-                    <h3 className="mb-6 text-xl font-semibold">
-                        {editingId !== null
-                            ? "Edit School Order"
-                            : "Add School Order"}
-                    </h3>
-
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-                        <div>
-                            <label htmlFor="order-school-name"
-                             className="mb-2 block text-sm font-medium">
-                                School Name
-                            </label>
-
-                            <input
-                                id="order-school-name"
-                                required
-                                placeholder="Enter school name"
-                                value={form.schoolName}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        schoolName: e.target.value,
-                                    })
-                                }
-                                className={inputStyle}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="order-contact" className="mb-2 block text-sm font-medium">
-                                Contact Number
-                            </label>
-
-                            <input
-                                id="order-contact"
-                                required
-                                placeholder="Enter contact number"
-                                value={form.contact}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        contact: e.target.value,
-                                    })
-                                }
-                                className={inputStyle}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="order-book-name" className="mb-2 block text-sm font-medium">
-                                Book Name
-                            </label>
-
-                            <input
-                                id="order-book-name"
-                                required
-                                placeholder="Enter book name"
-                                value={form.bookName}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        bookName: e.target.value,
-                                    })
-                                }
-                                className={inputStyle}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="order-quantity" className="mb-2 block text-sm font-medium">
-                                Quantity
-                            </label>
-
-                            <input
-                                id="order-quantity"
-                                required
-                                type="number"
-                                min="1"
-                                step="1"
-                                placeholder="Enter quantity"
-                                value={form.quantity}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        quantity: e.target.value,
-                                    })
-                                }
-                                className={inputStyle}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="order-price" className="mb-2 block text-sm font-medium">
-                                Price per Book (Rs.)
-                            </label>
-
-                            <input
-                                id="order-price"
-                                required
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="Enter price"
-                                value={form.price}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        price: e.target.value,
-                                    })
-                                }
-                                className={inputStyle}
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="order-status" className="mb-2 block text-sm font-medium">
-                                Order Status
-                            </label>
-
-                            <select
-                                id="order-status"
-                                value={form.status}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        status: e.target.value as SchoolOrder["status"],
-                                    })
-                                }
-                                className={inputStyle}
-                            >
-                                <option value="Pending">Pending</option>
-                                <option value="Processing">Processing</option>
-                                <option value="Delivered">Delivered</option>
-                            </select>
-                        </div>
+                <form onSubmit={(event) => void createOrder(event)} aria-busy={saving} className="space-y-4 rounded border bg-white p-6">
+                    <h3 className="text-xl font-semibold">Add School Order</h3>
+                    {formError && <p role="alert" id="school-order-form-error" className="text-red-700">{formError}</p>}
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <div><label htmlFor="school-order-school" className="mb-2 block">School</label>
+                            <select id="school-order-school" required disabled={saving} value={schoolId}
+                                onChange={(event) => setSchoolId(event.target.value)} className="w-full rounded border p-3">
+                                <option value="">Select school</option>
+                                {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+                            </select></div>
+                        <div><label htmlFor="school-order-product" className="mb-2 block">Book</label>
+                            <select id="school-order-product" required disabled={saving} value={productId}
+                                onChange={(event) => setProductId(event.target.value)} className="w-full rounded border p-3">
+                                <option value="">Select book</option>
+                                {products.map((product) => <option key={product.id} value={product.id}>{product.title} ({product.sku})</option>)}
+                            </select></div>
+                        <div><label htmlFor="school-order-quantity" className="mb-2 block">Quantity</label>
+                            <input id="school-order-quantity" type="number" min="1" step="1" required disabled={saving}
+                                value={quantity} onChange={(event) => setQuantity(event.target.value)}
+                                className="w-full rounded border p-3" /></div>
                     </div>
-
-                    <div className="mt-6 flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            className="rounded bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700"
-                        >
-                            {editingId !== null
-                                ? "Update Order"
-                                : "Save Order"}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={resetForm}
-                            className="rounded border border-gray-300 bg-white px-5 py-3 text-sm hover:bg-gray-100"
-                        >
-                            Cancel
-                        </button>
-                    </div>
+                    <button type="submit" disabled={saving || loading || schools.length === 0 || products.length === 0}
+                        className="rounded bg-blue-600 px-5 py-3 text-white disabled:opacity-50">
+                        {saving ? "Saving..." : "Save Order"}
+                    </button>
+                    {(!schools.length || !products.length) && !loading && <p className="text-sm text-gray-600">
+                        Register a school and add inventory products before creating an order.
+                    </p>}
                 </form>
             )}
 
-            {/* School Orders Table */}
-            <section className="rounded border border-gray-200 bg-white p-6">
-
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <h3 className="text-2xl font-semibold">
-                        School Orders List
-                    </h3>
-
-                     <label htmlFor="school-orders-search" className="sr-only">
-                         Search school orders by school or book name
-                     </label>
-
-                    <input
-                        type="text"
-                        id="school-orders-search"
-                        placeholder="Search by school or book name..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full rounded border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 sm:w-72"
-                    />
+            <section className="rounded border bg-white p-6">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                    <h3 className="text-xl font-semibold">School Orders List</h3>
+                    <label htmlFor="school-order-search" className="sr-only">Search school orders by school or book</label>
+                    <input id="school-order-search" type="search" placeholder="Search school or book..." value={search}
+                        onChange={(event) => setSearch(event.target.value)} className="w-full rounded border px-4 py-3 sm:w-72" />
                 </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-[#f3f4f6]">
-                        <tr>
+                {loading ? <p role="status">Loading school orders...</p> : !error && (
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm">
+                        <thead className="bg-gray-100"><tr>
                             <th scope="col" className="p-4">School</th>
-                            <th scope="col" className="p-4">Contact</th>
-                            <th scope="col" className="p-4">Book</th>
-                            <th scope="col" className="p-4">Quantity</th>
+                            <th scope="col" className="p-4">Books</th>
                             <th scope="col" className="p-4">Total (Rs.)</th>
                             <th scope="col" className="p-4">Status</th>
                             <th scope="col" className="p-4">Actions</th>
-                        </tr>
-                        </thead>
-
+                        </tr></thead>
                         <tbody>
-                        {filteredOrders.map((order) => (
-                            <tr
-                                key={order.id}
-                                className="border-b border-gray-200"
-                            >
-                                <td className="p-4">
-                                    {order.schoolName}
-                                </td>
-
-                                <td className="p-4">
-                                    {order.contact}
-                                </td>
-
-                                <td className="p-4">
-                                    {order.bookName}
-                                </td>
-
-                                <td className="p-4">
-                                    {order.quantity}
-                                </td>
-
-                                <td className="p-4">
-                                    {(order.quantity * order.price).toLocaleString()}
-                                </td>
-
-                                <td className="p-4">
-                                        <span
-                                            className={`inline-block rounded px-3 py-1 text-xs font-medium ${
-                                                order.status === "Pending"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : order.status === "Processing"
-                                                        ? "bg-blue-100 text-blue-800"
-                                                        : "bg-green-100 text-green-800"
-                                            }`}
-                                        >
-                                            {order.status}
-                                        </span>
-                                </td>
-
-                                <td className="p-4">
-                                    <div className="flex items-center gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => editOrder(order)}
-                                            className="font-medium text-blue-600 hover:underline"
-                                        >
-                                            Edit
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => deleteOrder(order.id)}
-                                            className="font-medium text-red-600 hover:underline"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-
-                        {filteredOrders.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={7}
-                                    className="p-9 text-center text-gray-500"
-                                >
-                                    No school orders found.
-                                </td>
-                            </tr>
-                        )}
+                            {filteredOrders.map((order) => (
+                                <tr key={order.id} className="border-b">
+                                    <td className="p-4">{order.schoolName}</td>
+                                    <td className="p-4">{order.items.map((item) => `${item.title} × ${item.quantity}`).join(", ")}</td>
+                                    <td className="p-4">{order.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0).toLocaleString()}</td>
+                                    <td className="p-4">
+                                        <label htmlFor={`order-status-${order.id}`} className="sr-only">Status for order #{order.id}</label>
+                                        <select id={`order-status-${order.id}`} value={order.status}
+                                            disabled={busyOrderId !== null}
+                                            onChange={(event) => void changeStatus(order, event.target.value as OrderStatus)}
+                                            className="rounded border p-2">
+                                            {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                                        </select>
+                                    </td>
+                                    <td className="p-4">
+                                        <button type="button" disabled={busyOrderId !== null}
+                                            onClick={() => void viewQuotation(order.id)}
+                                            className="text-blue-700 underline disabled:opacity-50">View quotation</button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredOrders.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">
+                                {search ? "No matching orders found." : "No school orders found."}
+                            </td></tr>}
                         </tbody>
-                    </table>
-                </div>
+                    </table></div>
+                )}
             </section>
+
+            {quotation && (
+                <section aria-label="School order quotation" className="rounded border bg-white p-6">
+                    <div className="flex flex-wrap justify-between gap-3">
+                        <h3 className="text-xl font-semibold">Quotation #{quotation.orderId}</h3>
+                        <button type="button" onClick={() => setQuotation(null)} className="underline">Close quotation</button>
+                    </div>
+                    <p className="mt-2">{quotation.schoolName} — {quotation.orderDate}</p>
+                    <ul className="mt-4 space-y-2">
+                        {quotation.items.map((item, index) =>
+                            <li key={index}>{item.title}: {item.quantity} × Rs. {item.unitPrice} = Rs. {item.lineTotal}</li>)}
+                    </ul>
+                    <p className="mt-4 font-bold">Grand Total: Rs. {quotation.totalAmount.toLocaleString()}</p>
+                </section>
+            )}
         </div>
     );
 }
