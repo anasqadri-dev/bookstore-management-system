@@ -12,6 +12,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,7 +45,7 @@ class SchoolControllerAuthorizationTest {
     void adminCanRegisterAndListSchools() throws Exception {
         String schoolName = "API School Admin Test";
 
-        mockMvc.perform(post("/api/schools")
+        mockMvc.perform(post("/api/schools").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"%s","contactPerson":"Ayesha Khan",
@@ -70,7 +71,7 @@ class SchoolControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "school-staff", roles = "STAFF")
     void staffCannotRegisterOrListSchools() throws Exception {
-        mockMvc.perform(post("/api/schools")
+        mockMvc.perform(post("/api/schools").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Staff Must Not Register"}
@@ -88,7 +89,7 @@ class SchoolControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "school-admin", roles = "ADMIN")
     void rejectsSchoolRegistrationWithoutAName() throws Exception {
-        mockMvc.perform(post("/api/schools")
+        mockMvc.perform(post("/api/schools").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"   ","contactPerson":"Ayesha"}

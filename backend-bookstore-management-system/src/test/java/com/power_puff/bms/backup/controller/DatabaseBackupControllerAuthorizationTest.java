@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,7 +50,7 @@ class DatabaseBackupControllerAuthorizationTest {
     void adminCanCreateDatabaseBackup() throws Exception {
         backupFile = temporaryDirectory.resolve("api-backup.db");
 
-        mockMvc.perform(post("/api/backup")
+        mockMvc.perform(post("/api/backup").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"destinationPath":"%s"}
@@ -70,7 +71,7 @@ class DatabaseBackupControllerAuthorizationTest {
         backupFile = temporaryDirectory.resolve("api-restore.db");
         DatabaseBackupResult backup = backupService.createBackup(backupFile.toString());
 
-        mockMvc.perform(post("/api/backup/restore")
+        mockMvc.perform(post("/api/backup/restore").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":"%s"}
@@ -87,7 +88,7 @@ class DatabaseBackupControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "backup-admin", roles = "ADMIN")
     void rejectsMissingBackupPaths() throws Exception {
-        mockMvc.perform(post("/api/backup")
+        mockMvc.perform(post("/api/backup").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"destinationPath":" "}
@@ -95,7 +96,7 @@ class DatabaseBackupControllerAuthorizationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
 
-        mockMvc.perform(post("/api/backup/restore")
+        mockMvc.perform(post("/api/backup/restore").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":""}
@@ -109,14 +110,14 @@ class DatabaseBackupControllerAuthorizationTest {
     void staffCannotCreateOrRestoreBackups() throws Exception {
         backupFile = temporaryDirectory.resolve("staff-backup.db");
 
-        mockMvc.perform(post("/api/backup")
+        mockMvc.perform(post("/api/backup").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"destinationPath":"%s"}
                                 """.formatted(backupFile.toString())))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(post("/api/backup/restore")
+        mockMvc.perform(post("/api/backup/restore").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":"%s"}
@@ -128,14 +129,14 @@ class DatabaseBackupControllerAuthorizationTest {
 
     @Test
     void unauthenticatedUsersCannotCreateOrRestoreBackups() throws Exception {
-        mockMvc.perform(post("/api/backup")
+        mockMvc.perform(post("/api/backup").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"destinationPath":"%s"}
                                 """.formatted(temporaryDirectory.resolve("anonymous.db"))))
                 .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(post("/api/backup/restore")
+        mockMvc.perform(post("/api/backup/restore").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":"%s"}
