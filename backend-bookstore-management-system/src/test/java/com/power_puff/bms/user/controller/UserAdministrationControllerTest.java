@@ -1,7 +1,5 @@
 package com.power_puff.bms.user.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.entity.UserRole;
 import com.power_puff.bms.user.repository.UserRepository;
@@ -38,9 +36,6 @@ class UserAdministrationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private UserRepository userRepository;
