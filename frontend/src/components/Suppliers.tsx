@@ -133,11 +133,12 @@ export default function Suppliers() {
                             { key: "phone", label: "Phone Number", required: true },
                             { key: "email", label: "Email Address" },
                         ].map((field) => (
-                            <label key={field.key} className="block">
+                            <label key={field.key} htmlFor={`supplier-${field.key}`} className="block">
                 <span className="mb-2 block text-sm font-medium text-gray-700">
                   {field.label}
                 </span>
                                 <input
+                                    id={`supplier-${field.key}`}
                                     type={field.key === "email" ? "email" : "text"}
                                     required={field.required}
                                     value={form[field.key as keyof typeof form]}
@@ -154,11 +155,12 @@ export default function Suppliers() {
                         ))}
                     </div>
 
-                    <label className="block">
+                    <label htmlFor="supplier-address" className="block">
             <span className="mb-2 block text-sm font-medium text-gray-700">
               Address
             </span>
                         <textarea
+                            id="supplier-address"
                             value={form.address}
                             onChange={(e) =>
                                 setForm({ ...form, address: e.target.value })
