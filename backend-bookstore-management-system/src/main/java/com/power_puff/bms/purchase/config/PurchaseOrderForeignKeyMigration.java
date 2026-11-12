@@ -1,5 +1,6 @@
 package com.power_puff.bms.purchase.config;
 
+import com.power_puff.bms.database.VersionedSqliteMigration;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
