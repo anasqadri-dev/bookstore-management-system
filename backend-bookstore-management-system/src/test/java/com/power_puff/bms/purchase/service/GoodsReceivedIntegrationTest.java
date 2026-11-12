@@ -172,7 +172,7 @@ class GoodsReceivedIntegrationTest {
                 """.formatted(productId));
         stockFailureTriggerCreated = true;
 
-        assertThrows(DataAccessException.class,
+        assertThrows(DuplicateResourceException.class,
                 () -> purchaseOrderService.receiveGoods(purchaseOrderId));
 
         entityManager.clear();
