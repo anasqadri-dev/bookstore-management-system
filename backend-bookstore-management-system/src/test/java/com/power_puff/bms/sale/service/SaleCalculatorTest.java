@@ -68,6 +68,25 @@ class SaleCalculatorTest {
     }
 
     @Test
+    void rejectsAmountsWithMoreThanTwoDecimalPlaces() {
+        assertThrows(IllegalArgumentException.class,
+                () -> calculator.calculateSubtotal(new BigDecimal("1.001"), 1));
+        assertThrows(IllegalArgumentException.class,
+                () -> calculator.calculateTotal(List.of(new BigDecimal("0.101"))));
+    }
+
+    @Test
+    void rejectsSubtotalAndTotalThatExceedTheDatabasePrecision() {
+        assertThrows(IllegalArgumentException.class,
+                () -> calculator.calculateSubtotal(
+                        new BigDecimal("99999999.99"), 101));
+        assertThrows(IllegalArgumentException.class,
+                () -> calculator.calculateTotal(List.of(
+                        new BigDecimal("9999999999.99"),
+                        new BigDecimal("0.01"))));
+    }
+
+    @Test
     void rejectsNegativeSubtotals() {
         assertThrows(IllegalArgumentException.class,
                 () -> calculator.calculateTotal(List.of(new BigDecimal("-1.00"))));
