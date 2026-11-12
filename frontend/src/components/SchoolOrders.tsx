@@ -61,7 +61,33 @@ export default function SchoolOrders() {
         }
     }, []);
 
-    useEffect(() => { void loadData(); }, [loadData]);
+    useEffect(() => {
+        let isMounted = true;
+
+        Promise.all([
+            apiRequest<SchoolOrder[]>("/api/school-orders"),
+            apiRequest<School[]>("/api/schools"),
+            apiRequest<Product[]>("/api/products"),
+        ])
+            .then(([savedOrders, registeredSchools, availableProducts]) => {
+                if (!isMounted) return;
+                setOrders(savedOrders);
+                setSchools(registeredSchools);
+                setProducts(availableProducts);
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setError("Unable to load school orders. Check your connection and Admin permissions, then retry.");
+                }
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     async function createOrder(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
