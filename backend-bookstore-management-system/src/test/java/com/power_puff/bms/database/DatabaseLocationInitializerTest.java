@@ -23,7 +23,8 @@ class DatabaseLocationInitializerTest {
                 .resolve("user-data")
                 .resolve("BookstoreManagementSystem")
                 .resolve("bookstore.db");
-        Path relativePath = temporaryDirectory.relativize(requestedPath);
+        Path workingDirectory = Path.of("").toAbsolutePath().normalize();
+        Path relativePath = workingDirectory.relativize(requestedPath.toAbsolutePath().normalize());
 
         try (GenericApplicationContext context = new GenericApplicationContext()) {
             context.getEnvironment().getPropertySources().addFirst(
