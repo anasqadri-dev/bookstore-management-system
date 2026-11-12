@@ -68,9 +68,9 @@ class ReportServiceIntegrationTest {
                 "Report Test Cashier", UserRole.STAFF));
         userId = user.getId();
 
-        LocalDate startDate = LocalDate.now().minusDays(3);
+        LocalDate startDate = LocalDate.now(ZoneId.of("Asia/Karachi")).minusDays(3);
         LocalDate endDate = startDate.plusDays(1);
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = ZoneId.of("Asia/Karachi");
 
         Sale openingDaySale = createSale(
                 startDate.atStartOfDay(zone).toInstant(),
