@@ -15,7 +15,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
@@ -46,10 +46,11 @@ public class SecurityConfiguration {
     public UserDetailsService userDetailsService(UserRepository userRepository) {
         return username -> userRepository.findByUsernameIgnoreCase(username)
                 .filter(com.power_puff.bms.user.entity.User::isActive)
-                .map(account -> User.withUsername(account.getUsername())
-                        .password(account.getPasswordHash())
-                        .roles(account.getRole().name())
-                        .build())
+                .map(account -> new BmsUserPrincipal(
+                        account.getId(),
+                        account.getUsername(),
+                        account.getPasswordHash(),
+                        account.getRole().name()))
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "User account was not found or is inactive."));
     }
@@ -99,12 +100,16 @@ public class SecurityConfiguration {
             HttpSecurity http,
             AuthenticationProvider authenticationProvider,
             SecurityContextRepository securityContextRepository,
-            CorsConfigurationSource corsConfigurationSource) throws Exception {
+            CorsConfigurationSource corsConfigurationSource,
+            UserRepository userRepository) throws Exception {
 
         CsrfTokenRequestAttributeHandler csrfRequestHandler =
                 new CsrfTokenRequestAttributeHandler();
 
         http.authenticationProvider(authenticationProvider)
+                .addFilterAfter(
+                        new UserSessionValidationFilter(userRepository),
+                        SecurityContextHolderFilter.class)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(new HttpSessionCsrfTokenRepository())
