@@ -41,7 +41,8 @@ class PurchaseOrderRequestValidationTest {
     @Test
     void rejectsMissingNonPositiveOrOverPrecisionUnitCost() {
         for (BigDecimal invalidCost : Arrays.asList(
-                null, BigDecimal.ZERO, new BigDecimal("-1.00"), new BigDecimal("1.234"))) {
+                null, BigDecimal.ZERO, new BigDecimal("-1.00"),
+                new BigDecimal("1.234"), new BigDecimal("12345678901.00"))) {
             PurchaseOrderRequest request = new PurchaseOrderRequest(
                     1, List.of(new PurchaseOrderItemRequest(1, 1, invalidCost)));
 
