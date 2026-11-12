@@ -1,4 +1,7 @@
 spring:
+  sql:
+    init:
+      mode: never
   datasource:
     url: "jdbc:sqlite:./target/bms-test.db"
     driver-class-name: org.sqlite.JDBC
