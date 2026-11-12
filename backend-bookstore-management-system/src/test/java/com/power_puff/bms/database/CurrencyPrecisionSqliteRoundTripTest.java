@@ -144,7 +144,8 @@ class CurrencyPrecisionSqliteRoundTripTest {
 
         assertMoney("40.28", createdSale.totalAmount());
         assertMoney("0.30", itemPrice(createdSale, dimeBook.getId(), true));
-        assertMoney("39.98", itemPrice(createdSale, standardBook.getId(), false));
+        assertMoney("19.99", itemPrice(createdSale, standardBook.getId(), false));
+        assertMoney("39.98", itemPrice(createdSale, standardBook.getId(), true));
 
         School school = schoolRepository.saveAndFlush(new School(
                 "Currency School " + suffix, null, null, null));
