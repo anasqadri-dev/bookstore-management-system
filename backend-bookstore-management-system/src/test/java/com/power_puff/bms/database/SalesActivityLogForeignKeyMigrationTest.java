@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +31,7 @@ class SalesActivityLogForeignKeyMigrationTest {
         SalesActivityLogForeignKeyMigration migration =
                 new SalesActivityLogForeignKeyMigration();
         VersionedSqliteMigrationRunner runner =
-                new VersionedSqliteMigrationRunner(dataSource, Set.of(migration));
+                new VersionedSqliteMigrationRunner(dataSource, List.of(migration));
         runner.runMigrations();
 
         try (Connection connection = dataSource.getConnection();
