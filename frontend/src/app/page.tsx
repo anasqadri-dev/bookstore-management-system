@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Login from "../components/Login";
 import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 import BooksInventory from "../components/BooksInventory";
@@ -18,6 +18,15 @@ export default function Home() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [activePage, setActivePage] = useState("Dashboard");
+    const pageHeadingRef = useRef<HTMLHeadingElement>(null);
+    const previousPageRef = useRef(activePage);
+
+    useEffect(() => {
+        if (previousPageRef.current !== activePage) {
+            previousPageRef.current = activePage;
+            pageHeadingRef.current?.focus();
+        }
+    }, [activePage]);
 
     useEffect(() => {
         let isMounted = true;
@@ -113,6 +122,7 @@ export default function Home() {
                             key={item.name}
                             type="button"
                             onClick={() => setActivePage(item.name)}
+                            aria-current={activePage === item.name ? "page" : undefined}
                             className={`flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm transition ${
                                 activePage === item.name
                                     ? "bg-slate-700 text-white"
@@ -146,7 +156,7 @@ export default function Home() {
                 {/* Header */}
                 <header className="mb-10 flex items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-3xl font-bold">
+                        <h2 ref={pageHeadingRef} tabIndex={-1} className="text-3xl font-bold">
                             {activePage}
                         </h2>
 

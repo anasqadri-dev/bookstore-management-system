@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Consistent, high-contrast focus indicators for keyboard navigation. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+/* Ensure the focus ring is visible on the dark navigation sidebar. */
+aside :where(button, a):focus-visible {
+  outline-color: #facc15;
+}
