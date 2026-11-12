@@ -33,8 +33,25 @@ export default function Suppliers() {
     }, []);
 
     useEffect(() => {
-        void loadSuppliers();
-    }, [loadSuppliers]);
+        let isMounted = true;
+
+        apiRequest<Supplier[]>("/api/suppliers")
+            .then((data) => {
+                if (isMounted) setSuppliers(data);
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setError("Could not load suppliers. Check your connection and permissions, then retry.");
+                }
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     async function saveSupplier(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -155,7 +172,11 @@ export default function Suppliers() {
                 ) : error ? (
                     <div role="alert" className="space-y-3 py-6 text-center">
                         <p className="text-red-700">{error}</p>
-                        <button type="button" onClick={() => void loadSuppliers()}
+                        <button type="button" onClick={() => {
+                            setLoading(true);
+                            setError("");
+                            void loadSuppliers();
+                        }}
                             className="rounded border border-gray-300 px-4 py-2">Retry</button>
                     </div>
                 ) : (
