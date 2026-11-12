@@ -1,6 +1,7 @@
 package com.power_puff.bms.product.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,6 +23,7 @@ public record ProductRequest(
 
         @NotNull(message = "Price is required")
         @DecimalMin(value = "0.01", message = "Price must be greater than zero")
+        @Digits(integer = 8, fraction = 2, message = "Price must have at most eight integer digits and two decimal places")
         BigDecimal price,
 
         @NotNull(message = "Quantity is required")
