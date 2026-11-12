@@ -155,7 +155,7 @@ export default function Home() {
                 {/* Header */}
                 <header className="mb-10 flex items-center justify-between gap-4">
                     <div>
-                        <h2 ref={pageHeadingRef} tabIndex={-1} className="text-3xl font-bold focus:outline-none">
+                        <h2 ref={pageHeadingRef} tabIndex={-1} className="text-3xl font-bold">
                             {activePage}
                         </h2>
 
