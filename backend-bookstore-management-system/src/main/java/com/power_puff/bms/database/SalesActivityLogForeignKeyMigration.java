@@ -40,7 +40,7 @@ public class SalesActivityLogForeignKeyMigration implements VersionedSqliteMigra
 
     @Override
     public String checksumSource() {
-        return "v1|sales:user_id->users.id|sale_items:sale_id->sales.id,product_id->products.id|activity_logs:user_id->users.id|copy-existing-rows|foreign-key-check";
+        return "v1|sales:sale_date-timestamp,user_id->users.id|sale_items:sale_id->sales.id,product_id->products.id|activity_logs:created_at-timestamp,user_id->users.id|copy-existing-rows|foreign-key-check";
     }
 
     @Override
@@ -70,7 +70,7 @@ public class SalesActivityLogForeignKeyMigration implements VersionedSqliteMigra
         statement.execute("""
                 CREATE TABLE sales_new (
                     id INTEGER PRIMARY KEY,
-                    sale_date DATETIME NOT NULL,
+                    sale_date TIMESTAMP NOT NULL,
                     customer_name VARCHAR(255),
                     total_amount NUMERIC(12, 2) NOT NULL,
                     user_id INTEGER NOT NULL REFERENCES users(id)
@@ -107,7 +107,7 @@ public class SalesActivityLogForeignKeyMigration implements VersionedSqliteMigra
                     user_id INTEGER NOT NULL REFERENCES users(id),
                     action VARCHAR(50) NOT NULL,
                     details VARCHAR(1000),
-                    created_at DATETIME NOT NULL
+                    created_at TIMESTAMP NOT NULL
                 )
                 """);
 
