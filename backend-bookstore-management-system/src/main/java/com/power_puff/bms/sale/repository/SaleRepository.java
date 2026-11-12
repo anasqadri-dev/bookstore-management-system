@@ -19,7 +19,7 @@ public interface SaleRepository extends JpaRepository<Sale, Integer> {
     List<Sale> findTop5ByOrderBySaleDateDesc();
 
     @Query("""
-            select coalesce(sum(sale.totalAmount), 0)
+            select sum(sale.totalAmount)
             from Sale sale
             where sale.saleDate >= :startInclusive
               and sale.saleDate < :endExclusive
