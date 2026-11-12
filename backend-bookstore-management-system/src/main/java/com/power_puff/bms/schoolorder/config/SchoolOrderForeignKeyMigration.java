@@ -1,10 +1,7 @@
 package com.power_puff.bms.schoolorder.config;
 
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +15,7 @@ import java.util.Set;
  * tables inside one transaction before the originals are replaced.
  */
 @Component
-public class SchoolOrderForeignKeyMigration implements ApplicationRunner {
+public class SchoolOrderForeignKeyMigration implements VersionedSqliteMigration {
 
     private static final Set<String> SCHOOL_ORDER_FOREIGN_KEYS = Set.of(
             "schools:school_id->id",
@@ -28,44 +25,31 @@ public class SchoolOrderForeignKeyMigration implements ApplicationRunner {
             "school_orders:order_id->id",
             "products:product_id->id");
 
-    private final DataSource dataSource;
 
-    public SchoolOrderForeignKeyMigration(DataSource dataSource) {
-        this.dataSource = dataSource;
+    @Override
+    public int version() {
+        return 2;
     }
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
-            statement.execute("PRAGMA foreign_keys=OFF");
+    public String description() {
+        return "Add school-order and school-order-item foreign keys";
+    }
 
+    @Override
+    public String checksumSource() {
+        return "v2|school_orders:school_id->schools.id,user_id->users.id|school_order_items:order_id->school_orders.id,product_id->products.id|copy-existing-rows|foreign-key-check";
+    }
+
+    @Override
+    public void migrate(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
             if (hasExpectedForeignKeys(statement)) {
-                statement.execute("PRAGMA foreign_keys=ON");
                 return;
             }
-
-            connection.setAutoCommit(false);
-            try {
-                rebuildSchoolOrderTables(statement);
-                verifyForeignKeys(statement);
-                verifyNoForeignKeyViolations(statement);
-
-                connection.commit();
-            } catch (Exception exception) {
-                connection.rollback();
-                throw exception;
-            } finally {
-                connection.setAutoCommit(true);
-                statement.execute("PRAGMA foreign_keys=ON");
-            }
-
+            rebuildSchoolOrderTables(statement);
             verifyForeignKeys(statement);
-        } catch (Exception exception) {
-            throw new IllegalStateException(
-                    "Could not apply the school-order SQLite foreign-key migration. "
-                            + "The existing school-order tables were not intentionally discarded.",
-                    exception);
+            verifyNoForeignKeyViolations(statement);
         }
     }
 
