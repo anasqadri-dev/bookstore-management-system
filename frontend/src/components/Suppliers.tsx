@@ -1,271 +1,196 @@
-
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { apiRequest } from "../lib/api";
 
 type Supplier = {
     id: number;
     name: string;
-    contactPerson: string;
-    phone: string;
-    email: string;
-    address: string;
+    phone: string | null;
+    address: string | null;
 };
 
 export default function Suppliers() {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [search, setSearch] = useState("");
     const [showForm, setShowForm] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [form, setForm] = useState({ name: "", phone: "", address: "" });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [formError, setFormError] = useState("");
+    const [notice, setNotice] = useState("");
 
-    const [form, setForm] = useState({
-        name: "",
-        contactPerson: "",
-        phone: "",
-        email: "",
-        address: "",
-    });
+    const loadSuppliers = useCallback(async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const data = await apiRequest<Supplier[]>("/api/suppliers");
+            setSuppliers(data);
+        } catch {
+            setError("Could not load suppliers. Check your connection and permissions, then retry.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-    function resetForm() {
-        setForm({
-            name: "",
-            contactPerson: "",
-            phone: "",
-            email: "",
-            address: "",
-        });
-        setEditingId(null);
-        setShowForm(false);
-    }
+    useEffect(() => {
+        void loadSuppliers();
+    }, [loadSuppliers]);
 
-    function saveSupplier(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
+    async function saveSupplier(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (saving) return;
 
-        if (!form.name.trim() || !form.phone.trim()) {
-            alert("Supplier name and phone number are required.");
+        if (!form.name.trim()) {
+            setFormError("Supplier name is required.");
             return;
         }
 
-        if (editingId !== null) {
-            setSuppliers((previous) =>
-                previous.map((supplier) =>
-                    supplier.id === editingId
-                        ? { ...supplier, ...form }
-                        : supplier
-                )
-            );
-        } else {
-            const newSupplier: Supplier = {
-                id: Date.now(),
-                ...form,
-            };
-
-            setSuppliers((previous) => [...previous, newSupplier]);
-        }
-
-        resetForm();
-    }
-
-    function editSupplier(supplier: Supplier) {
-        setForm({
-            name: supplier.name,
-            contactPerson: supplier.contactPerson,
-            phone: supplier.phone,
-            email: supplier.email,
-            address: supplier.address,
-        });
-        setEditingId(supplier.id);
-        setShowForm(true);
-    }
-
-    function deleteSupplier(id: number) {
-        if (window.confirm("Are you sure you want to delete this supplier?")) {
-            setSuppliers((previous) =>
-                previous.filter((supplier) => supplier.id !== id)
-            );
+        setSaving(true);
+        setFormError("");
+        setNotice("");
+        try {
+            await apiRequest<Supplier>("/api/suppliers", {
+                method: "POST",
+                body: JSON.stringify({
+                    name: form.name.trim(),
+                    phone: form.phone.trim() || null,
+                    address: form.address.trim() || null,
+                }),
+            });
+            setForm({ name: "", phone: "", address: "" });
+            setShowForm(false);
+            setNotice("Supplier saved successfully.");
+            await loadSuppliers();
+        } catch {
+            setFormError("Could not save supplier. Check the entered details and your connection, then retry.");
+        } finally {
+            setSaving(false);
         }
     }
 
     const filteredSuppliers = suppliers.filter((supplier) =>
-        [supplier.name, supplier.contactPerson, supplier.phone]
-            .some((value) =>
-                value.toLowerCase().includes(search.toLowerCase())
-            )
+        [supplier.name, supplier.phone ?? "", supplier.address ?? ""].some((value) =>
+            value.toLowerCase().includes(search.toLowerCase())
+        )
     );
+
+    const inputStyle = "w-full rounded border border-gray-300 bg-white px-3 py-3 text-gray-900";
 
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                        Suppliers Management
-                    </h2>
+                    <h2 className="text-2xl font-bold text-gray-900">Suppliers Management</h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        Manage bookstore suppliers and their contact details.
+                        View and register suppliers. Editing and deleting suppliers are not supported by the current API.
                     </p>
                 </div>
-
                 <button
                     type="button"
                     onClick={() => {
-                        resetForm();
-                        setShowForm(true);
+                        setFormError("");
+                        setNotice("");
+                        setShowForm((previous) => !previous);
                     }}
                     className="rounded bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
                 >
-                    + Add Supplier
+                    {showForm ? "Cancel" : "+ Add Supplier"}
                 </button>
             </div>
 
+            {notice && <p role="status" className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
+
             {showForm && (
-                <form
-                    onSubmit={saveSupplier}
-                    className="space-y-4 rounded border border-gray-200 bg-white p-6"
-                >
-                    <h3 className="text-xl font-semibold text-gray-900">
-                        {editingId !== null ? "Edit Supplier" : "Add New Supplier"}
-                    </h3>
-
+                <form onSubmit={(event) => void saveSupplier(event)}
+                    aria-busy={saving}
+                    className="space-y-4 rounded border border-gray-200 bg-white p-6">
+                    <h3 className="text-xl font-semibold text-gray-900">Add New Supplier</h3>
+                    {formError && <p id="supplier-form-error" role="alert" className="text-sm text-red-700">{formError}</p>}
                     <div className="grid gap-4 md:grid-cols-2">
-                        {[
-                            { key: "name", label: "Supplier Name", required: true },
-                            { key: "contactPerson", label: "Contact Person" },
-                            { key: "phone", label: "Phone Number", required: true },
-                            { key: "email", label: "Email Address" },
-                        ].map((field) => (
-                            <label key={field.key} className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700">
-                  {field.label}
-                </span>
-                                <input
-                                    type={field.key === "email" ? "email" : "text"}
-                                    required={field.required}
-                                    value={form[field.key as keyof typeof form]}
-                                    onChange={(e) =>
-                                        setForm((previous) => ({
-                                            ...previous,
-                                            [field.key]: e.target.value,
-                                        }))
-                                    }
-                                    className="w-full rounded border border-gray-300 px-3 py-3 text-gray-900"
-                                    placeholder={`Enter ${field.label.toLowerCase()}`}
-                                />
-                            </label>
-                        ))}
+                        <div>
+                            <label htmlFor="supplier-name" className="mb-2 block text-sm font-medium">Supplier Name</label>
+                            <input id="supplier-name" required value={form.name}
+                                aria-invalid={Boolean(formError)}
+                                aria-describedby={formError ? "supplier-form-error" : undefined}
+                                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                                className={inputStyle} disabled={saving} />
+                        </div>
+                        <div>
+                            <label htmlFor="supplier-phone" className="mb-2 block text-sm font-medium">Phone Number (optional)</label>
+                            <input id="supplier-phone" type="tel" value={form.phone}
+                                onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                                className={inputStyle} disabled={saving} />
+                        </div>
                     </div>
-
-                    <label className="block">
-            <span className="mb-2 block text-sm font-medium text-gray-700">
-              Address
-            </span>
-                        <textarea
-                            value={form.address}
-                            onChange={(e) =>
-                                setForm({ ...form, address: e.target.value })
-                            }
-                            rows={3}
-                            className="w-full rounded border border-gray-300 px-3 py-3 text-gray-900"
-                            placeholder="Enter supplier address"
-                        />
-                    </label>
-
-                    <div className="flex gap-3">
-                        <button
-                            type="submit"
-                            className="rounded bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
-                        >
-                            {editingId !== null ? "Update Supplier" : "Save Supplier"}
+                    <div>
+                        <label htmlFor="supplier-address" className="mb-2 block text-sm font-medium">Address (optional)</label>
+                        <textarea id="supplier-address" value={form.address} rows={3}
+                            onChange={(event) => setForm({ ...form, address: event.target.value })}
+                            className={inputStyle} disabled={saving} />
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                        <button type="submit" disabled={saving}
+                            className="rounded bg-blue-600 px-5 py-2 text-white hover:bg-blue-700 disabled:opacity-50">
+                            {saving ? "Saving..." : "Save Supplier"}
                         </button>
-
-                        <button
-                            type="button"
-                            onClick={resetForm}
-                            className="rounded border border-gray-300 px-5 py-2 text-gray-800"
-                        >
+                        <button type="button" disabled={saving} onClick={() => { setShowForm(false); setFormError(""); }}
+                            className="rounded border border-gray-300 px-5 py-2 disabled:opacity-50">
                             Cancel
                         </button>
                     </div>
                 </form>
             )}
 
-            <div className="rounded border border-gray-200 bg-white p-6">
+            <section className="rounded border border-gray-200 bg-white p-6">
                 <label htmlFor="suppliers-search" className="sr-only">
-                     Search suppliers by name, contact person, or phone number
+                    Search suppliers by name, phone, or address
                 </label>
-                <input
-                    type="text"
-                    id="suppliers-search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search by supplier name, contact person or phone..."
-                    className="mb-5 w-full rounded border border-gray-300 px-4 py-3 text-gray-900"
-                />
+                <input id="suppliers-search" type="search" value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search suppliers..."
+                    className="mb-5 w-full rounded border border-gray-300 px-4 py-3 text-gray-900" />
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-100 text-gray-900">
-                        <tr>
-                            <th className="p-4">Supplier Name</th>
-                            <th className="p-4">Contact Person</th>
-                            <th className="p-4">Phone</th>
-                            <th className="p-4">Email</th>
-                            <th className="p-4">Address</th>
-                            <th className="p-4">Actions</th>
-                        </tr>
-                        </thead>
-
-                        <tbody>
-                        {filteredSuppliers.map((supplier) => (
-                            <tr
-                                key={supplier.id}
-                                className="border-b border-gray-200 text-gray-800"
-                            >
-                                <td className="p-4">{supplier.name}</td>
-                                <td className="p-4">{supplier.contactPerson || "-"}</td>
-                                <td className="p-4">{supplier.phone}</td>
-                                <td className="p-4">{supplier.email || "-"}</td>
-                                <td className="p-4">{supplier.address || "-"}</td>
-                                <td className="p-4">
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => editSupplier(supplier)}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => deleteSupplier(supplier.id)}
-                                            className="text-red-600 hover:underline"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-
-                        {filteredSuppliers.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={6}
-                                    className="p-8 text-center text-gray-500"
-                                >
-                                    {search
-                                        ? "No matching suppliers found."
-                                        : "No suppliers added yet."}
-                                </td>
-                            </tr>
-                        )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <p className="mt-5 text-sm text-gray-600">
-                    Total Suppliers: {suppliers.length}
-                </p>
-            </div>
+                {loading ? (
+                    <p role="status" className="py-8 text-center text-gray-600">Loading suppliers...</p>
+                ) : error ? (
+                    <div role="alert" className="space-y-3 py-6 text-center">
+                        <p className="text-red-700">{error}</p>
+                        <button type="button" onClick={() => void loadSuppliers()}
+                            className="rounded border border-gray-300 px-4 py-2">Retry</button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-100 text-gray-900">
+                                    <tr>
+                                        <th scope="col" className="p-4">Supplier Name</th>
+                                        <th scope="col" className="p-4">Phone</th>
+                                        <th scope="col" className="p-4">Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredSuppliers.map((supplier) => (
+                                        <tr key={supplier.id} className="border-b border-gray-200 text-gray-800">
+                                            <td className="p-4">{supplier.name}</td>
+                                            <td className="p-4">{supplier.phone || "-"}</td>
+                                            <td className="p-4">{supplier.address || "-"}</td>
+                                        </tr>
+                                    ))}
+                                    {filteredSuppliers.length === 0 && (
+                                        <tr><td colSpan={3} className="p-8 text-center text-gray-500">
+                                            {search ? "No matching suppliers found." : "No suppliers registered yet."}
+                                        </td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <p className="mt-5 text-sm text-gray-600">Total Suppliers: {suppliers.length}</p>
+                    </>
+                )}
+            </section>
         </div>
     );
 }
