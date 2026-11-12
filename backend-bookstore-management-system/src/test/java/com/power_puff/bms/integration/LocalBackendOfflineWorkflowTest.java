@@ -94,7 +94,7 @@ class LocalBackendOfflineWorkflowTest {
     }
 
     @Test
-    void localLoginDataSaleReportsAndBackupUseTheLocalSqliteFile() throws Exception {
+    void localProductSaleReceiptReportsAndBackupUseTheLocalSqliteFile() throws Exception {
         // Confirm the active datasource is a local file, not a remote database.
         String activeDatabasePath;
         try (var connection = dataSource.getConnection();
