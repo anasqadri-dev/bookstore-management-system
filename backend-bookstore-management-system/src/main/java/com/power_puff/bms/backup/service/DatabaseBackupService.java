@@ -30,6 +30,8 @@ public class DatabaseBackupService {
             Path activeDatabase = findActiveDatabasePath(connection);
             destination = pathValidator.validateBackupDestination(
                     requestedDestination, activeDatabase);
+            // Reserve the path atomically so a concurrent request cannot overwrite another file.
+            Files.createFile(destination);
 
             try (Statement statement = connection.createStatement()) {
                 statement.executeUpdate("backup to " + sqlStringLiteral(destination));
