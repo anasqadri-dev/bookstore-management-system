@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
@@ -41,6 +42,7 @@ public class PurchaseOrderItem {
 
     @NotNull(message = "Unit cost is required")
     @DecimalMin(value = "0.01", message = "Unit cost must be greater than zero")
+    @Digits(integer = 10, fraction = 2, message = "Unit cost must have at most ten integer digits and two decimal places")
     @Column(name = "unit_cost", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitCost;
 
