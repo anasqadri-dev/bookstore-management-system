@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(150) NOT NULL,
     role VARCHAR(10) NOT NULL,
     active BOOLEAN NOT NULL,
-    created_at DATETIME NOT NULL
+    created_at TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS products (
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sale_date DATETIME NOT NULL,
+    sale_date TIMESTAMP NOT NULL,
     customer_name VARCHAR(255),
     total_amount NUMERIC(12, 2) NOT NULL,
     user_id INTEGER NOT NULL REFERENCES users(id)
