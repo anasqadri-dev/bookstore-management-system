@@ -1,214 +1,60 @@
-
 "use client";
 
-import { useState } from "react";
-
+/**
+ * The current SDS and API contract do not define a persisted store-settings
+ * resource. This screen deliberately exposes no editable fake configuration.
+ */
 export default function Settings() {
-    const initialSettings = {
-        storeName: "Book Store",
-        phone: "",
-        email: "",
-        address: "",
-        adminName: "Admin",
-        adminEmail: "",
-        lowStockLimit: "5",
-    };
-
-    const [settings, setSettings] = useState(initialSettings);
-    const [saved, setSaved] = useState(false);
-
-    function handleChange(
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) {
-        const { name, value } = e.target;
-
-        setSettings({
-            ...settings,
-            [name]: value,
-        });
-
-        setSaved(false);
-    }
-
-    function handleSave(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-
-        // Frontend only: settings are not saved to a database yet.
-        setSaved(true);
-    }
-
-    function handleReset() {
-        setSettings(initialSettings);
-        setSaved(false);
-    }
-
-    const inputStyle =
-        "w-full rounded border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500";
-
     return (
-        <form onSubmit={handleSave} className="space-y-8">
-
-            {/* Store Information */}
-            <section className="rounded border border-gray-200 bg-white p-6">
-                <h3 className="mb-6 text-2xl font-semibold">
-                    Store Information
-                </h3>
-
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium">
-                            Store Name
-                        </label>
-
-                        <input
-                            type="text"
-                            name="storeName"
-                            required
-                            value={settings.storeName}
-                            onChange={handleChange}
-                            className={inputStyle}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium">
-                            Phone Number
-                        </label>
-
-                        <input
-                            type="tel"
-                            name="phone"
-                            placeholder="Enter phone number"
-                            value={settings.phone}
-                            onChange={handleChange}
-                            className={inputStyle}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium">
-                            Email Address
-                        </label>
-
-                        <input
-                            type="email"
-                            name="email"
-                            placeholder="Enter store email"
-                            value={settings.email}
-                            onChange={handleChange}
-                            className={inputStyle}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium">
-                            Store Address
-                        </label>
-
-                        <input
-                            type="text"
-                            name="address"
-                            placeholder="Enter store address"
-                            value={settings.address}
-                            onChange={handleChange}
-                            className={inputStyle}
-                        />
-                    </div>
-                </div>
-            </section>
-
-            {/* Admin Profile */}
-            <section className="rounded border border-gray-200 bg-white p-6">
-                <h3 className="mb-6 text-2xl font-semibold">
-                    Admin Profile
-                </h3>
-
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <div>
-                        <label className="mb-2 block text-sm font-medium">
-                            Admin Name
-                        </label>
-
-                        <input
-                            type="text"
-                            name="adminName"
-                            required
-                            value={settings.adminName}
-                            onChange={handleChange}
-                            className={inputStyle}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-medium">
-                            Admin Email
-                        </label>
-
-                        <input
-                            type="email"
-                            name="adminEmail"
-                            placeholder="Enter admin email"
-                            value={settings.adminEmail}
-                            onChange={handleChange}
-                            className={inputStyle}
-                        />
-                    </div>
-                </div>
-            </section>
-
-            {/* Stock Settings */}
-            <section className="rounded border border-gray-200 bg-white p-6">
-                <h3 className="mb-6 text-2xl font-semibold">
-                    Stock Settings
-                </h3>
-
-                <div className="max-w-md">
-                    <label className="mb-2 block text-sm font-medium">
-                        Low Stock Alert Limit
-                    </label>
-
-                    <input
-                        type="number"
-                        name="lowStockLimit"
-                        min="0"
-                        step="1"
-                        required
-                        value={settings.lowStockLimit}
-                        onChange={handleChange}
-                        className={inputStyle}
-                    />
-
-                    <p className="mt-2 text-sm text-gray-500">
-                        Books with stock at or below this limit
-                        will be considered low stock once connected
-                        to inventory data.
-                    </p>
-                </div>
-            </section>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-4">
-                <button
-                    type="submit"
-                    className="rounded bg-blue-600 px-6 py-3 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                    Save Settings
-                </button>
-
-                <button
-                    type="button"
-                    onClick={handleReset}
-                    className="rounded border border-gray-300 bg-white px-6 py-3 text-sm hover:bg-gray-100"
-                >
-                    Reset
-                </button>
-
-                {saved && (
-                    <p className="text-sm font-medium text-green-600">
-                        Settings updated in this session!
-                    </p>
-                )}
+        <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+                <p className="mt-2 text-sm text-gray-600">
+                    System configuration information and currently supported options.
+                </p>
             </div>
-        </form>
+
+            <section className="rounded border border-gray-200 bg-white p-6">
+                <h3 className="text-xl font-semibold text-gray-900">Store Information</h3>
+                <p className="mt-3 text-sm text-gray-700">
+                    Editing the store name, phone, email and address is not available yet.
+                    The current backend API does not provide a store-profile settings endpoint.
+                </p>
+                <p className="mt-3 rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+                    No store-profile changes can be saved from this screen.
+                </p>
+            </section>
+
+            <section className="rounded border border-gray-200 bg-white p-6">
+                <h3 className="text-xl font-semibold text-gray-900">Admin Account</h3>
+                <p className="mt-3 text-sm text-gray-700">
+                    Admin profile changes are not supported by this Settings screen.
+                    Account administration must use the documented authenticated user-management
+                    workflow when its interface becomes available.
+                </p>
+                <p className="mt-3 text-sm text-gray-600">
+                    This page does not modify your account or login credentials.
+                </p>
+            </section>
+
+            <section className="rounded border border-gray-200 bg-white p-6">
+                <h3 className="text-xl font-semibold text-gray-900">Low-stock Alerts</h3>
+                <p className="mt-3 text-sm text-gray-700">
+                    Low-stock thresholds are configured <strong>per book</strong>, not as a
+                    global store setting. Each product has its own <code>minStock</code> value,
+                    and a book is low on stock when its quantity is at or below that value.
+                </p>
+                <p className="mt-3 text-sm text-gray-600">
+                    Use Books Inventory to manage supported product stock fields once
+                    inventory editing is connected to the backend.
+                </p>
+            </section>
+
+            <p role="status" className="text-sm text-gray-600">
+                Settings that require a new backend contract will remain unavailable until
+                they are designed, implemented and verified. No changes are stored locally
+                or presented as saved.
+            </p>
+        </div>
     );
 }

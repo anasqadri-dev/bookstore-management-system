@@ -31,6 +31,11 @@ logging:
 bms:
   database:
     path: ${BMS_DATABASE_PATH:${APPDATA:${user.home}/AppData/Roaming}/BookstoreManagementSystem/bookstore.db}
+
   business-time-zone: Asia/Karachi
+
   bootstrap-admin:
-    enabled: false
+    enabled: true
+    username: admin
+    password: admin
+    full-name: Store Administrator
