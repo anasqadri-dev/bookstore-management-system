@@ -135,6 +135,7 @@ export default function SalesPOS() {
                 </div>
 
                 <button
+                    type="button"
                     onClick={addToCart}
                     className="mt-5 rounded bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
                 >
@@ -149,7 +150,7 @@ export default function SalesPOS() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-gray-100">
                         <tr>
-                            <th className="p-4">Book Name</th>
+                            <th scope="col" className="p-4">Book Name</th>
                             <th className="p-4">Price</th>
                             <th className="p-4">Quantity</th>
                             <th className="p-4">Subtotal</th>
@@ -179,6 +180,7 @@ export default function SalesPOS() {
                                     <td className="p-4">
                                         <button
                                             onClick={() => removeFromCart(item.id)}
+                                            aria-label={`Remove ${item.title} from cart`}
                                             className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
                                         >
                                             Remove
@@ -194,7 +196,7 @@ export default function SalesPOS() {
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                     <h4 className="text-xl font-bold">Total: Rs. {total}</h4>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         <button
                             onClick={newSale}
                             className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
