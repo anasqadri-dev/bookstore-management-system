@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -64,7 +65,7 @@ class SaleControllerTest {
         when(saleService.create(any(SaleRequest.class), eq("counter-staff")))
                 .thenReturn(receipt);
 
-        mockMvc.perform(post("/api/sales")
+        mockMvc.perform(post("/api/sales").with(csrf())
                         .principal(() -> "counter-staff")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -90,7 +91,7 @@ class SaleControllerTest {
 
     @Test
     void rejectsSaleWithNoItemsBeforeCallingService() throws Exception {
-        mockMvc.perform(post("/api/sales")
+        mockMvc.perform(post("/api/sales").with(csrf())
                         .principal(() -> "counter-staff")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
