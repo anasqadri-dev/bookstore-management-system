@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Login from "../components/Login";
 import BooksInventory from "../components/BooksInventory";
 import SalesPOS from "../components/SalesPOS";
@@ -11,10 +11,31 @@ import Reports from "../components/Reports";
 import Settings from "../components/Settings";
 import SalesHistory from "../components/SalesHistory";
 import PurchaseOrders from "../components/PurchaseOrders";
+import { apiRequest, type AuthenticatedUser } from "../lib/api";
 
 export default function Home() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
+    const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [activePage, setActivePage] = useState("Dashboard");
+
+    useEffect(() => {
+        let isMounted = true;
+
+        apiRequest<AuthenticatedUser>("/api/auth/me")
+            .then((user) => {
+                if (isMounted) setCurrentUser(user);
+            })
+            .catch(() => {
+                if (isMounted) setCurrentUser(null);
+            })
+            .finally(() => {
+                if (isMounted) setIsSessionLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const menu = [
         { name: "Dashboard", icon: "▦" },
@@ -35,18 +56,39 @@ export default function Home() {
         { title: "Suppliers", value: "0" },
     ];
 
-    function handleLogin() {
-        setIsLoggedIn(true);
+    const visibleMenu = currentUser?.role === "ADMIN"
+        ? menu
+        : menu.filter((item) =>
+            ["Dashboard", "Books Inventory", "Sales / POS", "Sales History"]
+                .includes(item.name),
+        );
+
+    function handleLogin(user: AuthenticatedUser) {
+        setCurrentUser(user);
         setActivePage("Dashboard");
     }
 
-    function handleLogout() {
-        setIsLoggedIn(false);
-        setActivePage("Dashboard");
+    async function handleLogout() {
+        try {
+            await apiRequest<void>("/api/auth/logout", { method: "POST" });
+        } catch {
+            // Clear the local view even when the backend is unavailable.
+        } finally {
+            setCurrentUser(null);
+            setActivePage("Dashboard");
+        }
     }
 
-    // Show Login Page First
-    if (!isLoggedIn) {
+    if (isSessionLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[#f3f4f6] text-sm text-gray-600">
+                Checking your session...
+            </div>
+        );
+    }
+
+    // The backend session, not a client-side flag, determines authentication.
+    if (!currentUser) {
         return <Login onLogin={handleLogin} />;
     }
 
@@ -65,7 +107,7 @@ export default function Home() {
                 </p>
 
                 <nav className="mt-10 space-y-2">
-                    {menu.map((item) => (
+                    {visibleMenu.map((item) => (
                         <button
                             key={item.name}
                             type="button"
@@ -88,7 +130,7 @@ export default function Home() {
                 <div className="mt-10 border-t border-gray-700 pt-5">
                     <button
                         type="button"
-                        onClick={handleLogout}
+                        onClick={() => void handleLogout()}
                         className="flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm text-red-300 transition hover:bg-slate-800"
                     >
                         <span className="w-5 text-xl">⇥</span>
@@ -113,7 +155,7 @@ export default function Home() {
                     </div>
 
                     <div className="shrink-0 text-sm">
-                        ♙ &nbsp; Admin
+                        ♙ &nbsp; {currentUser.fullName} ({currentUser.role})
                     </div>
                 </header>
 
