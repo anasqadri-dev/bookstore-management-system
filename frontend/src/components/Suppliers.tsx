@@ -22,8 +22,6 @@ export default function Suppliers() {
     const [notice, setNotice] = useState("");
 
     const loadSuppliers = useCallback(async () => {
-        setLoading(true);
-        setError("");
         try {
             const data = await apiRequest<Supplier[]>("/api/suppliers");
             setSuppliers(data);
