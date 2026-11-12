@@ -36,6 +36,19 @@ Login uses an HTTP session. Desktop UI requests after login must retain and send
 
 Product fields follow the SDS data dictionary: `id`, `sku`, `title`, optional `author`, `price`, `quantity`, and `min_stock` (JSON field `minStock`). No category field is introduced because it is not in the SDS product data dictionary.
 
+## Dashboard
+
+Authenticated Admin and Staff users:
+
+- `GET /api/dashboard` — return the dashboard summary.
+- `totalBooks` is the number of product records.
+- `todaySales` is the sum of saved sale totals from the start of the current shop-local day (inclusive) to the start of the next day (exclusive).
+- `lowStock` is the number of products where quantity is less than or equal to minStock.
+- `suppliers` is the number of registered supplier records.
+- `recentSales` contains up to the five most recent sales, newest first, with sale date, customer, cashier, and total.
+
+The endpoint requires authentication. Both Admin and Staff may access the dashboard; unauthenticated callers receive HTTP 401.
+
 ## Reports
 
 Admin-only endpoints:
