@@ -2,7 +2,6 @@ package com.power_puff.bms.database;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.boot.DefaultApplicationArguments;
 import org.sqlite.SQLiteDataSource;
 
 import java.nio.file.Path;
@@ -29,8 +28,10 @@ class SalesActivityLogForeignKeyMigrationTest {
         createLegacySchemaAndRows(dataSource);
 
         SalesActivityLogForeignKeyMigration migration =
-                new SalesActivityLogForeignKeyMigration(dataSource);
-        migration.run(new DefaultApplicationArguments(new String[0]));
+                new SalesActivityLogForeignKeyMigration();
+        VersionedSqliteMigrationRunner runner =
+                new VersionedSqliteMigrationRunner(dataSource, Set.of(migration));
+        runner.runMigrations();
 
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
@@ -55,8 +56,8 @@ class SalesActivityLogForeignKeyMigrationTest {
             }
         }
 
-        // The migration is idempotent and must not copy rows a second time.
-        migration.run(new DefaultApplicationArguments(new String[0]));
+        // A recorded migration is skipped on subsequent application startups.
+        runner.runMigrations();
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
             assertEquals(1, scalar(statement, "SELECT COUNT(*) FROM sales"));
