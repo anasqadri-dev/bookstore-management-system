@@ -61,8 +61,12 @@ class SqliteSchemaBootstrapTest {
             assertTrue(!history.next());
         }
 
+        // SQLite PRAGMAs are connection-local. Enable the constraint on this
+        // verification connection rather than assuming the migration connection
+        // changed the setting for all future connections.
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
+            statement.execute("PRAGMA foreign_keys=ON");
             assertEquals(1, scalar(statement, "PRAGMA foreign_keys"));
             assertEquals(0, scalar(statement, "SELECT COUNT(*) FROM pragma_foreign_key_check"));
             assertEquals(1, scalar(statement,
