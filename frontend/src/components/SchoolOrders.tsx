@@ -183,11 +183,13 @@ export default function SchoolOrders() {
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
+                            <label htmlFor="order-school-name"
+                             className="mb-2 block text-sm font-medium">
                                 School Name
                             </label>
 
                             <input
+                                id="order-school-name"
                                 required
                                 placeholder="Enter school name"
                                 value={form.schoolName}
@@ -202,11 +204,12 @@ export default function SchoolOrders() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
+                            <label htmlFor="order-contact" className="mb-2 block text-sm font-medium">
                                 Contact Number
                             </label>
 
                             <input
+                                id="order-contact"
                                 required
                                 placeholder="Enter contact number"
                                 value={form.contact}
@@ -221,11 +224,12 @@ export default function SchoolOrders() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
+                            <label htmlFor="order-book-name" className="mb-2 block text-sm font-medium">
                                 Book Name
                             </label>
 
                             <input
+                                id="order-book-name"
                                 required
                                 placeholder="Enter book name"
                                 value={form.bookName}
@@ -240,11 +244,12 @@ export default function SchoolOrders() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
+                            <label htmlFor="order-quantity" className="mb-2 block text-sm font-medium">
                                 Quantity
                             </label>
 
                             <input
+                                id="order-quantity"
                                 required
                                 type="number"
                                 min="1"
@@ -262,11 +267,12 @@ export default function SchoolOrders() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
+                            <label htmlFor="order-price" className="mb-2 block text-sm font-medium">
                                 Price per Book (Rs.)
                             </label>
 
                             <input
+                                id="order-price"
                                 required
                                 type="number"
                                 min="0"
@@ -284,11 +290,12 @@ export default function SchoolOrders() {
                         </div>
 
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
+                            <label htmlFor="order-status" className="mb-2 block text-sm font-medium">
                                 Order Status
                             </label>
 
                             <select
+                                id="order-status"
                                 value={form.status}
                                 onChange={(e) =>
                                     setForm({
@@ -334,8 +341,13 @@ export default function SchoolOrders() {
                         School Orders List
                     </h3>
 
+                     <label htmlFor="school-orders-search" className="sr-only">
+                         Search school orders by school or book name
+                     </label>
+
                     <input
                         type="text"
+                        id="school-orders-search"
                         placeholder="Search by school or book name..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -347,13 +359,13 @@ export default function SchoolOrders() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-[#f3f4f6]">
                         <tr>
-                            <th className="p-4">School</th>
-                            <th className="p-4">Contact</th>
-                            <th className="p-4">Book</th>
-                            <th className="p-4">Quantity</th>
-                            <th className="p-4">Total (Rs.)</th>
-                            <th className="p-4">Status</th>
-                            <th className="p-4">Actions</th>
+                            <th scope="col" className="p-4">School</th>
+                            <th scope="col" className="p-4">Contact</th>
+                            <th scope="col" className="p-4">Book</th>
+                            <th scope="col" className="p-4">Quantity</th>
+                            <th scope="col" className="p-4">Total (Rs.)</th>
+                            <th scope="col" className="p-4">Status</th>
+                            <th scope="col" className="p-4">Actions</th>
                         </tr>
                         </thead>
 

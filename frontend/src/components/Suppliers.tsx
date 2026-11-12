@@ -189,8 +189,12 @@ export default function Suppliers() {
             )}
 
             <div className="rounded border border-gray-200 bg-white p-6">
+                <label htmlFor="suppliers-search" className="sr-only">
+                     Search suppliers by name, contact person, or phone number
+                </label>
                 <input
                     type="text"
+                    id="suppliers-search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search by supplier name, contact person or phone..."
