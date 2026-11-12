@@ -18,6 +18,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     List<Product> findByTitleContainingIgnoreCaseOrSkuContainingIgnoreCase(
             String title, String sku);
 
+    @Query("select count(product) from Product product " +
+            "where product.quantity <= product.minStock")
+    long countLowStockProducts();
+
     @Query("select product from Product product " +
             "where product.quantity <= product.minStock order by product.title asc")
     List<Product> findAllLowStockProducts();

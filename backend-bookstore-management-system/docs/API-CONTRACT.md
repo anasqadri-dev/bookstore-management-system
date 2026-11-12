@@ -36,6 +36,19 @@ Login uses an HTTP session. Desktop UI requests after login must retain and send
 
 Product fields follow the SDS data dictionary: `id`, `sku`, `title`, optional `author`, `price`, `quantity`, and `min_stock` (JSON field `minStock`). No category field is introduced because it is not in the SDS product data dictionary.
 
+## Dashboard
+
+Authenticated Admin and Staff users:
+
+- `GET /api/dashboard` — return the dashboard summary.
+- `totalBooks` is the number of product records.
+- `todaySales` is the sum of saved sale totals from the start of the current shop-local day (inclusive) to the start of the next day (exclusive).
+- `lowStock` is the number of products where quantity is less than or equal to minStock.
+- `suppliers` is the number of registered supplier records.
+- `recentSales` contains up to the five most recent sales, newest first, with sale date, customer, cashier, and total.
+
+The endpoint requires authentication. Both Admin and Staff may access the dashboard; unauthenticated callers receive HTTP 401.
+
 ## Reports
 
 Admin-only endpoints:
@@ -183,6 +196,35 @@ The receive action marks the order `RECEIVED`, records `receivedDate`, and incre
 | Received quantities would exceed the supported stock range | 400 | The receipt is rejected; the order stays ORDERED and stock remains unchanged. |
 | Goods have already been received for the order | 409 | The repeated receive request is rejected; stock remains unchanged. |
 | The caller is not an Admin | 403 | Purchase-order endpoints are forbidden. |
+
+## Database Backup and Restore
+
+Admin-only endpoints:
+
+- `POST /api/backup` — create a consistent SQLite database backup at the requested absolute file path.
+- `POST /api/backup/restore` — validate and restore a selected SQLite backup into the active local database.
+
+Create-backup request:
+
+```json
+{
+  "destinationPath": "D:/BookstoreBackups/bookstore-2026-11-12.db"
+}
+```
+
+Restore request:
+
+```json
+{
+  "backupPath": "D:/BookstoreBackups/bookstore-2026-11-12.db"
+}
+```
+
+The backup destination must use a supported SQLite extension (`.db`, `.sqlite`, or `.sqlite3`), must be an absolute path in an existing writable directory, and must not already exist or point to the active database file. The service verifies the created backup with SQLite `integrity_check`.
+
+Restore checks that the selected file is readable, non-empty, has a valid SQLite integrity check, contains the eleven tables defined in the SDS, and has no foreign-key violations. Before replacing the active database, the backend creates a temporary safety copy. If the restore or its post-restore verification fails, the backend attempts to restore that safety copy. If automatic rollback cannot be verified, the recovery-copy path is returned in the server error for administrator recovery.
+
+Unauthenticated callers receive HTTP 401. Staff users receive HTTP 403. Invalid paths, files, or request values are rejected without modifying the active database.
 
 ## User account administration
 
