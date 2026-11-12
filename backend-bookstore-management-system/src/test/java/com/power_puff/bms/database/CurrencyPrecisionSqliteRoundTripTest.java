@@ -1,7 +1,7 @@
 package com.power_puff.bms.database;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.repository.ProductRepository;
 import com.power_puff.bms.purchase.dto.PurchaseOrderItemRequest;
