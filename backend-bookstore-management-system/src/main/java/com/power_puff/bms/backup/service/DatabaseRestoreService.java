@@ -33,6 +33,9 @@ public class DatabaseRestoreService {
             "activity_logs"
     );
 
+    private static final Set<String> MIGRATION_HISTORY_COLUMNS = Set.of(
+            "version", "description", "checksum", "applied_at");
+
     private final DataSource dataSource;
     private final BackupPathValidator pathValidator;
 
@@ -142,11 +145,32 @@ public class DatabaseRestoreService {
             }
         }
 
-        if (!REQUIRED_TABLES.equals(actualTables)) {
+        // Older valid backups predate schema versioning. New backups also
+        // contain the internal migration-history table; both formats are valid.
+        Set<String> expectedTablesWithHistory = new HashSet<>(REQUIRED_TABLES);
+        expectedTablesWithHistory.add("schema_migrations");
+        if (!REQUIRED_TABLES.equals(actualTables)
+                && !expectedTablesWithHistory.equals(actualTables)) {
             throw new SQLException(
                     "Backup schema does not match the supported Bookstore database. "
-                            + "Expected tables " + REQUIRED_TABLES
-                            + " but found " + actualTables + ".");
+                            + "Expected business tables " + REQUIRED_TABLES
+                            + " with optional schema_migrations metadata, but found "
+                            + actualTables + ".");
+        }
+
+        if (actualTables.contains("schema_migrations")) {
+            Set<String> actualHistoryColumns = new HashSet<>();
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(
+                         "PRAGMA table_info('schema_migrations')")) {
+                while (resultSet.next()) {
+                    actualHistoryColumns.add(resultSet.getString("name"));
+                }
+            }
+            if (!MIGRATION_HISTORY_COLUMNS.equals(actualHistoryColumns)) {
+                throw new SQLException(
+                        "Backup contains an unsupported schema migration history table.");
+            }
         }
 
         try (Statement statement = connection.createStatement();
