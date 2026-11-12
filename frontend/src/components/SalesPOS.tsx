@@ -123,7 +123,7 @@ export default function SalesPOS() {
                     <div>
                         <label htmlFor="sales-quantity" className="mb-2 block text-sm">Quantity</label>
                         <input
-                            id="sales-quantity" 
+                            id="sales-quantity"
                             type="number"
                             min="1"
                             step="1"
