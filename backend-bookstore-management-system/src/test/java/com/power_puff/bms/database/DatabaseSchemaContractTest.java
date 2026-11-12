@@ -74,6 +74,7 @@ class DatabaseSchemaContractTest {
                 FROM sqlite_master
                 WHERE type = 'table'
                   AND name NOT LIKE 'sqlite_%'
+                  AND name <> 'schema_migrations'
                 """,
                 (resultSet, rowNumber) -> resultSet.getString("name")));
 

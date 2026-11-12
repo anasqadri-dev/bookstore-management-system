@@ -15,6 +15,7 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ public class Sale {
 
     @NotNull(message = "Total amount is required")
     @DecimalMin(value = "0.00", message = "Total amount cannot be negative")
+    @Digits(integer = 10, fraction = 2, message = "Sale total must have at most ten integer digits and two decimal places")
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 

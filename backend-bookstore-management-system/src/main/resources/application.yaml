@@ -1,8 +1,11 @@
 spring:
+  sql:
+    init:
+      mode: always
   application:
     name: backend-bookstore-management-system
   datasource:
-    url: jdbc:sqlite:./data/bookstore.db
+    url: jdbc:sqlite:${bms.database.path}
     driver-class-name: org.sqlite.JDBC
     hikari:
       connection-init-sql: "PRAGMA foreign_keys=ON"
@@ -10,7 +13,7 @@ spring:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -26,5 +29,8 @@ logging:
     org.hibernate.orm.jdbc.bind: WARN
 
 bms:
+  database:
+    path: ${BMS_DATABASE_PATH:${APPDATA:${user.home}/AppData/Roaming}/BookstoreManagementSystem/bookstore.db}
+  business-time-zone: Asia/Karachi
   bootstrap-admin:
     enabled: false

@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -92,7 +93,7 @@ class PurchaseOrderControllerAuthorizationTest {
                 new BigDecimal("80.00"), 4, 0));
         productId = product.getId();
 
-        mockMvc.perform(post("/api/purchase-orders")
+        mockMvc.perform(post("/api/purchase-orders").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"supplierId":%d,"items":[
@@ -121,14 +122,14 @@ class PurchaseOrderControllerAuthorizationTest {
 
         assertEquals(4, productRepository.findById(productId).orElseThrow().getQuantity());
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/receive", purchaseOrderId))
+        mockMvc.perform(post("/api/purchase-orders/{id}/receive", purchaseOrderId).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("RECEIVED"))
                 .andExpect(jsonPath("$.data.receivedDate").isNotEmpty());
 
         assertEquals(9, productRepository.findById(productId).orElseThrow().getQuantity());
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/receive", purchaseOrderId))
+        mockMvc.perform(post("/api/purchase-orders/{id}/receive", purchaseOrderId).with(csrf()))
                 .andExpect(status().isConflict());
 
         assertEquals(9, productRepository.findById(productId).orElseThrow().getQuantity());
@@ -139,7 +140,7 @@ class PurchaseOrderControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "purchase-controller-staff", roles = "STAFF")
     void staffCannotCreateListViewOrReceivePurchaseOrders() throws Exception {
-        mockMvc.perform(post("/api/purchase-orders")
+        mockMvc.perform(post("/api/purchase-orders").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"supplierId":1,"items":[
@@ -154,7 +155,7 @@ class PurchaseOrderControllerAuthorizationTest {
         mockMvc.perform(get("/api/purchase-orders/1"))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(post("/api/purchase-orders/1/receive"))
+        mockMvc.perform(post("/api/purchase-orders/1/receive").with(csrf()))
                 .andExpect(status().isForbidden());
     }
 }

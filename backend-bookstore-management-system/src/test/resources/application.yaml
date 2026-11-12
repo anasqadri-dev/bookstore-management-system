@@ -1,6 +1,11 @@
 spring:
+  sql:
+    init:
+      mode: never
   datasource:
-    url: "jdbc:sqlite:./target/bms-test.db"
+    # A separate file per Spring test context prevents create-drop from
+    # deleting business tables while leaving migration history from an older context.
+    url: "jdbc:sqlite:./target/bms-test-${random.uuid}.db"
     driver-class-name: org.sqlite.JDBC
     hikari:
       maximum-pool-size: 1

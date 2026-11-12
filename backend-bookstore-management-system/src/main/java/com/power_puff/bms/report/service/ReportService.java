@@ -8,6 +8,7 @@ import com.power_puff.bms.report.dto.SalesReportItemResponse;
 import com.power_puff.bms.report.dto.SalesReportResponse;
 import com.power_puff.bms.sale.entity.Sale;
 import com.power_puff.bms.sale.repository.SaleRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +27,14 @@ public class ReportService {
 
     private final SaleRepository saleRepository;
     private final ProductRepository productRepository;
+    private final ZoneId businessTimeZone;
 
     public ReportService(SaleRepository saleRepository,
-                         ProductRepository productRepository) {
+                         ProductRepository productRepository,
+                         @Value("${bms.business-time-zone:Asia/Karachi}") String businessTimeZone) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
+        this.businessTimeZone = ZoneId.of(businessTimeZone);
     }
 
     public SalesReportResponse getSalesReport(LocalDate startDate, LocalDate endDate) {
@@ -41,9 +45,8 @@ public class ReportService {
             throw new IllegalArgumentException("Start date cannot be after end date.");
         }
 
-        ZoneId shopTimeZone = ZoneId.systemDefault();
-        var startInclusive = startDate.atStartOfDay(shopTimeZone).toInstant();
-        var endExclusive = endDate.plusDays(1).atStartOfDay(shopTimeZone).toInstant();
+        var startInclusive = startDate.atStartOfDay(businessTimeZone).toInstant();
+        var endExclusive = endDate.plusDays(1).atStartOfDay(businessTimeZone).toInstant();
 
         List<Sale> sales = saleRepository
                 .findAllBySaleDateGreaterThanEqualAndSaleDateLessThanOrderBySaleDateDesc(
