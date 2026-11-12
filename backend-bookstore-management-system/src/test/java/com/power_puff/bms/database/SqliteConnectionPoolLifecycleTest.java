@@ -85,10 +85,10 @@ class SqliteConnectionPoolLifecycleTest {
                 assertEquals(0, resultSet.getInt(1));
             }
 
-            statement.execute("BEGIN EXCLUSIVE");
+            connection.setAutoCommit(false);
             statement.executeUpdate(
                     "INSERT INTO lifecycle_records (id, value) VALUES (3, 'after-shutdown')");
-            statement.execute("COMMIT");
+            connection.commit();
         }
 
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + databaseFile);
