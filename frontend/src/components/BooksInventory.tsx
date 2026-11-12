@@ -16,6 +16,7 @@ export default function BooksInventory() {
     const [search, setSearch] = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
+    const [formError, setFormError] = useState("");
 
     const [form, setForm] = useState({
         title: "",
@@ -25,6 +26,7 @@ export default function BooksInventory() {
     });
 
     function resetForm() {
+        setFormError("");
         setForm({
             title: "",
             author: "",
@@ -44,7 +46,7 @@ export default function BooksInventory() {
         const quantity = Number(form.quantity);
 
         if (!title || !author || !form.price || !form.quantity) {
-            alert("Please fill all fields.");
+            setFormError("Please fill all fields.");
             return;
         }
 
@@ -54,10 +56,11 @@ export default function BooksInventory() {
             !Number.isSafeInteger(quantity) ||
             quantity < 0
         ) {
-            alert("Enter a valid price and quantity.");
+            setFormError("Enter a valid price and quantity.");
             return;
         }
 
+        setFormError("");
         if (editId !== null) {
             setBooks(
                 books.map((book) =>
@@ -145,6 +148,11 @@ export default function BooksInventory() {
                         {editId !== null ? "Edit Book" : "Add New Book"}
                     </h4>
 
+                    {formError && (
+                        <p id="inventory-form-error" role="alert" className="mb-4 text-sm text-red-700">
+                            {formError}
+                        </p>
+                    )}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <label htmlFor="inventory-book-name" className="mb-2 block text-sm">
@@ -152,6 +160,8 @@ export default function BooksInventory() {
                             </label>
                             <input
                                 id="inventory-book-name"
+                                aria-describedby={formError ? "inventory-form-error" : undefined}
+                                aria-invalid={Boolean(formError)}
                                 type="text"
                                 value={form.title}
                                 onChange={(e) =>
@@ -168,6 +178,8 @@ export default function BooksInventory() {
                             </label>
                             <input
                                 id="inventory-author"
+                                aria-describedby={formError ? "inventory-form-error" : undefined}
+                                aria-invalid={Boolean(formError)}
                                 type="text"
                                 value={form.author}
                                 onChange={(e) =>
@@ -184,6 +196,8 @@ export default function BooksInventory() {
                             </label>
                             <input
                                 id="inventory-price"
+                                aria-describedby={formError ? "inventory-form-error" : undefined}
+                                aria-invalid={Boolean(formError)}
                                 type="number"
                                 min="0.01"
                                 step="0.01"
@@ -202,6 +216,8 @@ export default function BooksInventory() {
                             </label>
                             <input
                                 id="inventory-quantity"
+                                aria-describedby={formError ? "inventory-form-error" : undefined}
+                                aria-invalid={Boolean(formError)}
                                 type="number"
                                 min="0"
                                 step="1"
@@ -236,10 +252,10 @@ export default function BooksInventory() {
 
             {/* Search */}
             <div className="mb-5">
+                <label htmlFor="search-books" className="sr-only">Search books by name or author</label>
                 <input
-                    type="text"
+                    type="search"
                     id="search-books"
-                    aria-label="Search books by name or author"
                     placeholder="Search by book name or author"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
