@@ -2,12 +2,16 @@
 "use client";
 
 import { useState } from "react";
+import Login from "../components/Login";
 import BooksInventory from "../components/BooksInventory";
 import SalesPOS from "../components/SalesPOS";
 import Suppliers from "../components/Suppliers";
 import SchoolOrders from "../components/SchoolOrders";
+import Reports from "../components/Reports";
+import Settings from "../components/Settings";
 
 export default function Home() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [activePage, setActivePage] = useState("Dashboard");
 
     const menu = [
@@ -27,12 +31,30 @@ export default function Home() {
         { title: "Suppliers", value: "0" },
     ];
 
+    function handleLogin() {
+        setIsLoggedIn(true);
+        setActivePage("Dashboard");
+    }
+
+    function handleLogout() {
+        setIsLoggedIn(false);
+        setActivePage("Dashboard");
+    }
+
+    // Show Login Page First
+    if (!isLoggedIn) {
+        return <Login onLogin={handleLogin} />;
+    }
+
     return (
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
             <aside className="bg-[#030712] p-6 text-white md:h-screen md:w-[320px] md:shrink-0 md:overflow-y-auto">
-                <h1 className="text-2xl font-bold">Book Store</h1>
+
+                <h1 className="text-2xl font-bold">
+                    Book Store
+                </h1>
 
                 <p className="mt-2 text-sm text-gray-400">
                     Management System
@@ -50,11 +72,25 @@ export default function Home() {
                                     : "text-gray-300 hover:bg-slate-800"
                             }`}
                         >
-                            <span className="w-5 text-xl">{item.icon}</span>
+                            <span className="w-5 text-xl">
+                                {item.icon}
+                            </span>
                             {item.name}
                         </button>
                     ))}
                 </nav>
+
+                {/* Logout Button */}
+                <div className="mt-10 border-t border-gray-700 pt-5">
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm text-red-300 transition hover:bg-slate-800"
+                    >
+                        <span className="w-5 text-xl">⇥</span>
+                        Logout
+                    </button>
+                </div>
             </aside>
 
             {/* Main Content */}
@@ -136,6 +172,10 @@ export default function Home() {
                     <SchoolOrders />
                 ) : activePage === "Sales / POS" ? (
                     <SalesPOS />
+                ) : activePage === "Reports" ? (
+                    <Reports />
+                ) : activePage === "Settings" ? (
+                    <Settings />
                 ) : (
                     <section className="rounded border border-gray-200 bg-white p-6">
                         <h3 className="text-xl font-semibold">
