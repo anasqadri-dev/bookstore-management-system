@@ -9,7 +9,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:sqlite:./target/bms-production-schema-validation.db",
+        "spring.datasource.url=jdbc:sqlite:./target/bms-production-schema-validation-${random.uuid}.db",
         "spring.sql.init.mode=always",
         "spring.jpa.hibernate.ddl-auto=validate"
 })
