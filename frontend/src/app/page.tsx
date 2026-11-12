@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Login from "../components/Login";
+import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 import BooksInventory from "../components/BooksInventory";
 import SalesPOS from "../components/SalesPOS";
 import Suppliers from "../components/Suppliers";
@@ -159,6 +160,7 @@ export default function Home() {
                     </div>
                 </header>
 
+                <ModuleErrorBoundary key={activePage} onReturnToDashboard={() => setActivePage("Dashboard")}>
                 {activePage === "Dashboard" ? (
                     <>
                         {/* Statistics Cards */}
@@ -239,6 +241,7 @@ export default function Home() {
                         </p>
                     </section>
                 )}
+                </ModuleErrorBoundary>
             </main>
         </div>
     );
