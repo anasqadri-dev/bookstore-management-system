@@ -3,29 +3,37 @@
 
 import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { apiRequest, type AuthenticatedUser } from "../lib/api";
 
 type LoginProps = {
-    onLogin: () => void;
+    onLogin: (user: AuthenticatedUser) => void;
 };
 
 export default function Login({ onLogin }: LoginProps) {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [focused, setFocused] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    function handleLogin(e: FormEvent<HTMLFormElement>) {
+    async function handleLogin(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
+        setError("");
+        setIsSubmitting(true);
 
-        if (
-            email.trim().toLowerCase() === "admin@bookstore.com" &&
-            password === "admin123"
-        ) {
-            setError("");
-            onLogin();
-        } else {
-            setError("Invalid email or password. Please try again.");
+        try {
+            const user = await apiRequest<AuthenticatedUser>("/api/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ username: username.trim(), password }),
+            });
+            onLogin(user);
+        } catch (loginError) {
+            setError(loginError instanceof Error
+                ? loginError.message
+                : "Sign in failed. Check your credentials and try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
@@ -83,7 +91,7 @@ export default function Login({ onLogin }: LoginProps) {
 
                     <div className="login-intro">
                         <div className="login-accent" />
-                        <p className="login-eyebrow">ADMIN DASHBOARD</p>
+                        <p className="login-eyebrow">BOOKSTORE MANAGEMENT</p>
 
                         <h2>
                             Your bookstore,
@@ -118,7 +126,7 @@ export default function Login({ onLogin }: LoginProps) {
                 <div className="login-right">
                     <div className="login-form-container">
                         <p className="login-eyebrow">
-                            SECURE ADMIN ACCESS
+                            SECURE ACCESS
                         </p>
 
                         <h2 className="login-welcome">
@@ -131,24 +139,24 @@ export default function Login({ onLogin }: LoginProps) {
 
                         <form onSubmit={handleLogin}>
                             <div className="login-field">
-                                <label htmlFor="login-email">
-                                    Email Address
+                                <label htmlFor="login-username">
+                                    Username
                                 </label>
 
                                 <input
-                                    id="login-email"
-                                    type="email"
+                                    id="login-username"
+                                    type="text"
                                     required
                                     autoComplete="username"
-                                    placeholder="Enter your email"
-                                    value={email}
+                                    placeholder="Enter your username"
+                                    value={username}
                                     onChange={(e) => {
-                                        setEmail(e.target.value);
+                                        setUsername(e.target.value);
                                         setError("");
                                     }}
-                                    onFocus={() => setFocused("email")}
+                                    onFocus={() => setFocused("username")}
                                     onBlur={() => setFocused("")}
-                                    style={inputStyle("email")}
+                                    style={inputStyle("username")}
                                 />
                             </div>
 
@@ -195,16 +203,14 @@ export default function Login({ onLogin }: LoginProps) {
                                 </p>
                             )}
 
-                            <button type="submit" className="login-submit">
-                                Sign In
+                            <button
+                                type="submit"
+                                className="login-submit"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? "Signing in..." : "Sign In"}
                             </button>
                         </form>
-
-                        <div className="login-demo">
-                            <p className="login-demo-title">DEMO ACCOUNT</p>
-                            <p>Email: admin@bookstore.com</p>
-                            <p>Password: admin123</p>
-                        </div>
 
                         <p className="login-form-footer">
                             Book Store Management System
@@ -418,7 +424,12 @@ export default function Login({ onLogin }: LoginProps) {
                     transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
                 }
 
-                .login-submit:hover {
+                .login-submit:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.7;
+                }
+
+                .login-submit:hover:not(:disabled) {
                     background: #1d4ed8;
                     transform: translateY(-1px);
                     box-shadow: 0 5px 14px rgba(37, 99, 235, 0.2);
@@ -441,26 +452,6 @@ export default function Login({ onLogin }: LoginProps) {
                     background: #fef2f2;
                     color: #dc2626;
                     font-size: 12px;
-                }
-
-                .login-demo {
-                    margin-top: 25px;
-                    padding: 15px 18px;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 9px;
-                    background: #f8fafc;
-                }
-
-                .login-demo-title {
-                    font-weight: 700;
-                    color: #334155 !important;
-                    margin-bottom: 8px;
-                }
-
-                .login-demo p {
-                    font-size: 12px;
-                    line-height: 1.9;
-                    color: #64748b;
                 }
 
                 .login-form-footer {
