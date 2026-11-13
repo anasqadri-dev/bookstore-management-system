@@ -24,7 +24,12 @@ export default function BooksInventory() {
         catch (error) { setApiError(error instanceof Error ? error.message : "Unable to load books."); }
         finally { setLoading(false); }
     }, []);
-    useEffect(() => { void loadBooks(); }, [loadBooks]);
+    useEffect(() => {
+        apiRequest<Book[]>("/api/products")
+            .then((products) => { setBooks(products); setApiError(""); })
+            .catch((error: unknown) => { setApiError(error instanceof Error ? error.message : "Unable to load books."); })
+            .finally(() => { setLoading(false); });
+    }, []);
     const [search, setSearch] = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
