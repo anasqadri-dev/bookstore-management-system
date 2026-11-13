@@ -1,10 +1,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { apiRequest } from "../lib/api";
 
 type Book = {
     id: number;
+    sku: string;
+    minStock: number;
     title: string;
     author: string;
     price: number;
@@ -13,6 +16,15 @@ type Book = {
 
 export default function BooksInventory() {
     const [books, setBooks] = useState<Book[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [apiError, setApiError] = useState("");
+    const loadBooks = useCallback(async () => {
+        try { setBooks(await apiRequest<Book[]>("/api/products")); setApiError(""); }
+        catch (error) { setApiError(error instanceof Error ? error.message : "Unable to load books."); }
+        finally { setLoading(false); }
+    }, []);
+    useEffect(() => { void loadBooks(); }, [loadBooks]);
     const [search, setSearch] = useState("");
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
@@ -37,7 +49,7 @@ export default function BooksInventory() {
         setShowForm(false);
     }
 
-    function saveBook(e: React.FormEvent<HTMLFormElement>) {
+    async function saveBook(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
         const title = form.title.trim();
@@ -60,28 +72,25 @@ export default function BooksInventory() {
             return;
         }
 
+        setBusy(true);
         setFormError("");
-        if (editId !== null) {
-            setBooks(
-                books.map((book) =>
-                    book.id === editId
-                        ? { id: editId, title, author, price, quantity }
-                        : book
-                )
-            );
-        } else {
-            const newBook: Book = {
-                id: Date.now(),
-                title,
-                author,
-                price,
-                quantity,
-            };
-
-            setBooks([...books, newBook]);
+        try {
+            const existing = books.find((book) => book.id === editId);
+            await apiRequest(editId !== null ? `/api/products/${editId}` : "/api/products", {
+                method: editId !== null ? "PUT" : "POST",
+                body: JSON.stringify({
+                    sku: existing?.sku ?? `BOOK-${Date.now()}`,
+                    title, author, price, quantity,
+                    minStock: existing?.minStock ?? 0,
+                }),
+            });
+            await loadBooks();
+            resetForm();
+        } catch (error) {
+            setFormError(error instanceof Error ? error.message : "Unable to save book.");
+        } finally {
+            setBusy(false);
         }
-
-        resetForm();
     }
 
     function editBook(book: Book) {
@@ -96,13 +105,17 @@ export default function BooksInventory() {
         setShowForm(true);
     }
 
-    function deleteBook(id: number) {
-        if (window.confirm("Are you sure you want to delete this book?")) {
-            setBooks(books.filter((book) => book.id !== id));
-
-            if (editId === id) {
-                resetForm();
-            }
+    async function deleteBook(id: number) {
+        if (!window.confirm("Are you sure you want to delete this book?")) return;
+        setBusy(true);
+        try {
+            await apiRequest(`/api/products/${id}`, { method: "DELETE" });
+            await loadBooks();
+            if (editId === id) resetForm();
+        } catch (error) {
+            setApiError(error instanceof Error ? error.message : "Unable to delete book.");
+        } finally {
+            setBusy(false);
         }
     }
 
@@ -138,6 +151,7 @@ export default function BooksInventory() {
                 </button>
             </div>
 
+            {apiError && <p role="alert" className="mb-4 text-red-700">{apiError} <button type="button" className="underline" onClick={() => void loadBooks()}>Retry</button></p>}
             {/* Add / Edit Form */}
             {showForm && (
                 <form
@@ -234,6 +248,7 @@ export default function BooksInventory() {
                     <div className="mt-6 flex gap-3">
                         <button
                             type="submit"
+                            disabled={busy}
                             className="rounded bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
                         >
                             {editId !== null ? "Update Book" : "Save Book"}
@@ -280,7 +295,7 @@ export default function BooksInventory() {
                     {filteredBooks.length === 0 ? (
                         <tr>
                             <td colSpan={5} className="p-8 text-center text-gray-500">
-                                {books.length === 0
+                                {loading ? "Loading books..." : books.length === 0
                                     ? "No books added yet."
                                     : "No matching books found."}
                             </td>
@@ -305,7 +320,8 @@ export default function BooksInventory() {
                                         </button>
 
                                         <button
-                                            onClick={() => deleteBook(book.id)}
+                                            disabled={busy}
+                                            onClick={() => void deleteBook(book.id)}
                                             className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
                                         >
                                             Delete
