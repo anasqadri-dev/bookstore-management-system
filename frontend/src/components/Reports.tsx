@@ -45,11 +45,12 @@ export default function Reports() {
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                     <div>
-                        <label className="mb-2 block text-sm font-medium">
+                        <label htmlFor="reports-type" className="mb-2 block text-sm font-medium">
                             Report Type
                         </label>
 
                         <select
+                            id="reports-type"
                             value={reportType}
                             onChange={(e) => setReportType(e.target.value)}
                             className="w-full rounded border border-gray-300 bg-white p-3"
@@ -62,11 +63,12 @@ export default function Reports() {
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium">
+                        <label htmlFor="reports-start-date" className="mb-2 block text-sm font-medium">
                             Start Date
                         </label>
 
                         <input
+                            id="reports-start-date"
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
@@ -75,11 +77,12 @@ export default function Reports() {
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium">
+                        <label htmlFor="reports-end-date" className="mb-2 block text-sm font-medium">
                             End Date
                         </label>
 
                         <input
+                            id="reports-end-date"
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
@@ -88,11 +91,12 @@ export default function Reports() {
                     </div>
 
                     <div>
-                        <label className="mb-2 block text-sm font-medium">
+                        <label htmlFor="reports-search" className="mb-2 block text-sm font-medium">
                             Search
                         </label>
 
                         <input
+                            id="reports-search"
                             type="text"
                             placeholder="Search records..."
                             value={search}
