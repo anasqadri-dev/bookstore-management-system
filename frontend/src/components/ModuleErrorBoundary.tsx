@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 
 type Props = {
   children: ReactNode;
@@ -16,7 +16,7 @@ export default class ModuleErrorBoundary extends Component<Props, State> {
     return { hasError: true };
   }
 
-  componentDidCatch(_error: Error, _info: ErrorInfo) {
+  componentDidCatch() {
     // Avoid logging raw exception messages, stack traces, or sensitive data.
     console.error("A bookstore module failed to render.");
   }
