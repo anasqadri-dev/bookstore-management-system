@@ -15,7 +15,7 @@ import PurchaseOrders from "../components/PurchaseOrders";
 import { apiRequest, type AuthenticatedUser } from "../lib/api";
 import BackendReadiness from "../components/BackendReadiness";
 
-export default function Home() {
+function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [activePage, setActivePage] = useState("Dashboard");
@@ -104,7 +104,6 @@ export default function Home() {
     }
 
     return (
-        <BackendReadiness>
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
@@ -256,6 +255,10 @@ export default function Home() {
                 </ModuleErrorBoundary>
             </main>
         </div>
-        </BackendReadiness>
     );
+}
+
+
+export default function Home() {
+    return <BackendReadiness><AppContent /></BackendReadiness>;
 }
