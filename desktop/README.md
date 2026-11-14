@@ -37,6 +37,6 @@ The development runtime uses `JAVA_HOME` or `java` from PATH and the backend JAR
 
 The Windows CI workflow builds the backend JAR, creates a trimmed Java runtime with `jlink`, builds the Next.js standalone output, installs the pinned Electron tooling, runs runtime tests, and creates an NSIS installer.
 
-The generated installer is not yet a release-approved artifact. A clean Windows 10/11 installation, offline launch, restart/persistence, backup/restore, printer selection and paper-size, shutdown/orphan-process, upgrade, and uninstall test is still required before issues #232, #279, and #291 can be closed.
+Use the [Windows release acceptance checklist](WINDOWS-ACCEPTANCE-CHECKLIST.md) to record clean-machine installation, offline operation, persistence, backup/restore, printer, scaling, shutdown, upgrade, and uninstall results. The generated installer is not yet a release-approved artifact. A clean Windows 10/11 installation, offline launch, restart/persistence, backup/restore, printer selection and paper-size, shutdown/orphan-process, upgrade, and uninstall test is still required before issues #232, #279, and #291 can be closed.
 
 Uninstall intentionally preserves the per-user database. The installer does not store SQLite data in the installation directory.
