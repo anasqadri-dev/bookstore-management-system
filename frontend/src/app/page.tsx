@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Login from "../components/Login";
+import AdminSetup from "../components/AdminSetup";
 import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 import BooksInventory from "../components/BooksInventory";
 import SalesPOS from "../components/SalesPOS";
@@ -19,6 +20,7 @@ import BackendReadiness from "../components/BackendReadiness";
 function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
+    const [setupRequired, setSetupRequired] = useState(false);
     const [activePage, setActivePage] = useState("Dashboard");
     const pageHeadingRef = useRef<HTMLHeadingElement>(null);
     const previousPageRef = useRef(activePage);
@@ -33,16 +35,31 @@ function AppContent() {
     useEffect(() => {
         let isMounted = true;
 
-        apiRequest<AuthenticatedUser>("/api/auth/me")
-            .then((user) => {
-                if (isMounted) setCurrentUser(user);
-            })
-            .catch(() => {
-                if (isMounted) setCurrentUser(null);
-            })
-            .finally(() => {
+        async function restoreSessionOrCheckFirstRun() {
+            try {
+                const user = await apiRequest<AuthenticatedUser>("/api/auth/me");
+                if (isMounted) {
+                    setCurrentUser(user);
+                    setSetupRequired(false);
+                }
+            } catch {
+                if (!isMounted) return;
+                setCurrentUser(null);
+                try {
+                    const status = await apiRequest<{ setupRequired: boolean }>(
+                        "/api/setup/status",
+                        { cache: "no-store" },
+                    );
+                    if (isMounted) setSetupRequired(status.setupRequired);
+                } catch {
+                    if (isMounted) setSetupRequired(false);
+                }
+            } finally {
                 if (isMounted) setIsSessionLoading(false);
-            });
+            }
+        }
+
+        void restoreSessionOrCheckFirstRun();
 
         return () => {
             isMounted = false;
@@ -69,6 +86,7 @@ function AppContent() {
         );
 
     function handleLogin(user: AuthenticatedUser) {
+        setSetupRequired(false);
         setCurrentUser(user);
         setActivePage("Dashboard");
     }
@@ -80,6 +98,7 @@ function AppContent() {
             // Clear the local view even when the backend is unavailable.
         } finally {
             setCurrentUser(null);
+            setSetupRequired(false);
             setActivePage("Dashboard");
         }
     }
@@ -94,7 +113,9 @@ function AppContent() {
 
     // The backend session, not a client-side flag, determines authentication.
     if (!currentUser) {
-        return <Login onLogin={handleLogin} />;
+        return setupRequired
+            ? <AdminSetup onComplete={() => setSetupRequired(false)} />
+            : <Login onLogin={handleLogin} />;
     }
 
     return (
