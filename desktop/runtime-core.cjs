@@ -73,14 +73,14 @@ function stopChildProcess(child, timeoutMs = 5000) {
         child.once("exit", onExit);
         child.once("error", onError);
         try {
-            child.kill();
+            child.kill("SIGINT");
         } catch (error) {
             onError(error);
             return;
         }
         timer = setTimeout(() => {
             try {
-                child.kill();
+                child.kill("SIGKILL");
                 finish("forced");
             } catch (error) {
                 onError(error);
