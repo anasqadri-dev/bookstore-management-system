@@ -11,7 +11,7 @@ A local-first bookstore management project for Qadri Book Store, Shahi Bazaar, R
 | Backend | Java 25, Spring Boot 4.1.2, Spring Security, Spring Data JPA/Hibernate, SQLite REST API |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 dashboard |
 | Database | Local SQLite file stored in the Windows user application-data directory by default |
-| Authentication | Backend session-based Admin/Staff login and authorization; initial Admin provisioning requires configuration |
+| Authentication | Backend session-based Admin/Staff login and authorization; first Admin is created through a one-time local setup screen |
 | Desktop packaging | **Planned:** Electron/Windows packaging is not present |
 | Frontend tests | **Planned:** no frontend test script/test runner currently configured |
 | Backend tests | Maven Wrapper test suite |
@@ -50,7 +50,7 @@ cd backend-bookstore-management-system
 .\mvnw.cmd spring-boot:run
 ```
 
-The backend listens at `http://localhost:8080` by default. **For first-time login**, provision an Admin account using the explicit environment-variable instructions in the [backend README](backend-bookstore-management-system/README.md). The backend does **not** automatically print a generated password. Do not commit passwords or database files.
+The backend listens at `http://127.0.0.1:8080` by default. **For first-time setup**, open `http://127.0.0.1:3000` after starting the frontend. The local dashboard presents a one-time Admin setup form when the database has no user accounts. The owner chooses a unique password; no default password is shipped. See the [first-run setup guide](backend-bookstore-management-system/README.md#initial-admin-account-provisioning). Do not commit passwords or database files.
 
 3. In a **second PowerShell terminal**, from the repository root, start the frontend:
 
@@ -60,7 +60,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The frontend defaults to the API at `http://localhost:8080`; see [frontend configuration](frontend/README.md) for `NEXT_PUBLIC_API_BASE_URL`, session cookies, CSRF, and troubleshooting.
+Open `http://127.0.0.1:3000`. The frontend defaults to the API at `http://127.0.0.1:8080`; see [frontend configuration](frontend/README.md) for `NEXT_PUBLIC_API_BASE_URL`, session cookies, CSRF, and troubleshooting.
 
 ### Run quality checks
 

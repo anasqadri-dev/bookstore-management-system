@@ -125,7 +125,8 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/csrf")
+                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/csrf",
+                                "/api/setup/status", "/api/setup")
                         .permitAll()
                         .requestMatchers(
                         "/api/users/**",
