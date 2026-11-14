@@ -112,7 +112,7 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, onUnaut
             );
         }
 
-        if (response.status === 401 && path !== "/api/auth/login") {
+        if (response.status === 401 && path !== "/api/auth/login" && path !== "/api/auth/me") {
             onUnauthorized();
         }
 
