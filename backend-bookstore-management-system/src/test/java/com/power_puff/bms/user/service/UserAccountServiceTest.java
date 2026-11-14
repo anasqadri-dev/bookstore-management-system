@@ -1,5 +1,6 @@
 package com.power_puff.bms.user.service;
 
+import com.power_puff.bms.activitylog.service.ActivityLogService;
 import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.user.dto.CreateStaffRequest;
 import com.power_puff.bms.user.dto.UpdateStaffRequest;
@@ -29,6 +30,9 @@ class UserAccountServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private ActivityLogService activityLogService;
+
     @InjectMocks
     private UserAccountService userAccountService;
 
@@ -54,6 +58,8 @@ class UserAccountServiceTest {
                         && !user.getPasswordHash().equals("SecurePass123")
                         && user.getRole() == UserRole.STAFF
                         && user.isActive()));
+        verify(activityLogService).recordCurrentUserAction(
+                "STAFF_CREATED", "Created Staff account id=11, username=counter1");
     }
 
     @Test
@@ -77,6 +83,24 @@ class UserAccountServiceTest {
 
         assertFalse(response.active());
         verify(userRepository, never()).delete(any(User.class));
+        verify(activityLogService).recordCurrentUserAction(
+                "STAFF_DEACTIVATED", "Deactivated Staff account id=11, username=counter1");
+    }
+
+    @Test
+    void recordsPasswordChangesWithoutIncludingCredentialMaterial() {
+        User staff = new User("counter1", "old-hash", "Counter Worker", UserRole.STAFF);
+        staff.setId(11L);
+        when(userRepository.findById(11L)).thenReturn(Optional.of(staff));
+        when(passwordEncoder.encode("NewSecurePass123")).thenReturn("new-hash");
+        when(userRepository.save(staff)).thenReturn(staff);
+
+        userAccountService.updateStaff(
+                11L, new UpdateStaffRequest("Counter Worker", "NewSecurePass123", null));
+
+        verify(activityLogService).recordCurrentUserAction(
+                "STAFF_PASSWORD_CHANGED",
+                "Changed password for Staff account id=11, username=counter1");
     }
 
     @Test
