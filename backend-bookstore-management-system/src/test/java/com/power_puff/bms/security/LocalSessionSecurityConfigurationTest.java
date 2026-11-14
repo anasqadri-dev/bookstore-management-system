@@ -1,33 +1,48 @@
 package com.power_puff.bms.security;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.core.io.FileSystemResource;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
-@ActiveProfiles("test")
 class LocalSessionSecurityConfigurationTest {
 
-    @Autowired
-    private Environment environment;
+    private Properties productionProperties() {
+        Path configuration = Path.of("src/main/resources/application.yaml")
+                .toAbsolutePath().normalize();
+        assertTrue(Files.isRegularFile(configuration),
+                "Production application.yaml must be present for this configuration test");
+
+        YamlPropertiesFactoryBean yaml = new YamlPropertiesFactoryBean();
+        yaml.setResources(new FileSystemResource(configuration));
+        yaml.afterPropertiesSet();
+        Properties properties = yaml.getObject();
+        assertNotNull(properties);
+        return properties;
+    }
 
     @Test
     void apiBindsToLoopbackAndUsesExplicitSessionCookiePolicy() {
-        assertEquals("127.0.0.1", environment.getProperty("server.address"));
+        Properties properties = productionProperties();
+        assertEquals("127.0.0.1", properties.getProperty("server.address"));
         assertEquals("true",
-                environment.getProperty("server.servlet.session.cookie.http-only"));
+                properties.getProperty("server.servlet.session.cookie.http-only"));
         assertEquals("lax",
-                environment.getProperty("server.servlet.session.cookie.same-site"));
+                properties.getProperty("server.servlet.session.cookie.same-site"));
         assertEquals("false",
-                environment.getProperty("server.servlet.session.cookie.secure"));
+                properties.getProperty("server.servlet.session.cookie.secure"));
     }
 
     @Test
     void sessionIdleTimeoutIsExplicitAndConfigurable() {
-        assertEquals("30m", environment.getProperty("server.servlet.session.timeout"));
+        assertEquals("${BMS_SESSION_TIMEOUT:30m}",
+                productionProperties().getProperty("server.servlet.session.timeout"));
     }
 }
