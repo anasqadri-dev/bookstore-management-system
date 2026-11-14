@@ -19,36 +19,67 @@ export default function BooksInventory() {
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [apiError, setApiError] = useState("");
-    const loadBooks = useCallback(async () => {
-        try { setBooks(await apiRequest<Book[]>("/api/products")); setApiError(""); }
-        catch (error) { setApiError(error instanceof Error ? error.message : "Unable to load books."); }
-        finally { setLoading(false); }
-    }, []);
-    useEffect(() => {
-        apiRequest<Book[]>("/api/products")
-            .then((products) => { setBooks(products); setApiError(""); })
-            .catch((error: unknown) => { setApiError(error instanceof Error ? error.message : "Unable to load books."); })
-            .finally(() => { setLoading(false); });
-    }, []);
     const [search, setSearch] = useState("");
+    const [showLowStock, setShowLowStock] = useState(false);
+    const loadBooks = useCallback(async () => {
+        try {
+            const path = showLowStock
+                ? "/api/products/low-stock"
+                : `/api/products${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`;
+            const products = await apiRequest<Book[]>(path, { cache: "no-store" });
+            if (!Array.isArray(products)) throw new Error("The inventory response was invalid.");
+            setBooks(products);
+            setApiError("");
+        } catch (error) {
+            setApiError(error instanceof Error ? error.message : "Unable to load books.");
+        } finally {
+            setLoading(false);
+        }
+    }, [search, showLowStock]);
+    useEffect(() => {
+        let active = true;
+        async function loadInitialOrFilteredBooks() {
+            try {
+                const endpoint = showLowStock
+                    ? "/api/products/low-stock"
+                    : `/api/products${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`;
+                const products = await apiRequest<Book[]>(endpoint, { cache: "no-store" });
+                if (!Array.isArray(products)) throw new Error("The inventory response was invalid.");
+                if (active) {
+                    setBooks(products);
+                    setApiError("");
+                }
+            } catch (error) {
+                if (active) setApiError(error instanceof Error ? error.message : "Unable to load books.");
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+        void loadInitialOrFilteredBooks();
+        return () => { active = false; };
+    }, [search, showLowStock]);
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [formError, setFormError] = useState("");
 
     const [form, setForm] = useState({
+        sku: "",
         title: "",
         author: "",
         price: "",
         quantity: "",
+        minStock: "0",
     });
 
     function resetForm() {
         setFormError("");
         setForm({
+            sku: "",
             title: "",
             author: "",
             price: "",
             quantity: "",
+            minStock: "0",
         });
         setEditId(null);
         setShowForm(false);
@@ -57,12 +88,14 @@ export default function BooksInventory() {
     async function saveBook(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
+        const sku = form.sku.trim();
         const title = form.title.trim();
         const author = form.author.trim();
         const price = Number(form.price);
         const quantity = Number(form.quantity);
+        const minStock = Number(form.minStock);
 
-        if (!title || !author || !form.price || !form.quantity) {
+        if (!sku || !title || !form.price || form.quantity === "" || form.minStock === "") {
             setFormError("Please fill all fields.");
             return;
         }
@@ -71,7 +104,9 @@ export default function BooksInventory() {
             !Number.isFinite(price) ||
             price <= 0 ||
             !Number.isSafeInteger(quantity) ||
-            quantity < 0
+            quantity < 0 ||
+            !Number.isSafeInteger(minStock) ||
+            minStock < 0
         ) {
             setFormError("Enter a valid price and quantity.");
             return;
@@ -80,13 +115,10 @@ export default function BooksInventory() {
         setBusy(true);
         setFormError("");
         try {
-            const existing = books.find((book) => book.id === editId);
             await apiRequest(editId !== null ? `/api/products/${editId}` : "/api/products", {
                 method: editId !== null ? "PUT" : "POST",
                 body: JSON.stringify({
-                    sku: existing?.sku ?? `BOOK-${Date.now()}`,
-                    title, author, price, quantity,
-                    minStock: existing?.minStock ?? 0,
+                    sku, title, author: author || null, price, quantity, minStock,
                 }),
             });
             await loadBooks();
@@ -100,10 +132,12 @@ export default function BooksInventory() {
 
     function editBook(book: Book) {
         setForm({
+            sku: book.sku,
             title: book.title,
-            author: book.author,
+            author: book.author ?? "",
             price: String(book.price),
             quantity: String(book.quantity),
+            minStock: String(book.minStock),
         });
 
         setEditId(book.id);
@@ -124,11 +158,7 @@ export default function BooksInventory() {
         }
     }
 
-    const filteredBooks = books.filter(
-        (book) =>
-            book.title.toLowerCase().includes(search.toLowerCase()) ||
-            book.author.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredBooks = books;
 
     const inputStyle =
         "w-full rounded border border-gray-300 bg-white p-3 text-gray-900 outline-none focus:border-blue-500";
@@ -137,9 +167,10 @@ export default function BooksInventory() {
         <div>
             {/* Heading */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-xl font-semibold">
-                    Books List
-                </h3>
+                <div>
+                    <h3 className="text-xl font-semibold">Books List</h3>
+                    <p className="mt-1 text-sm text-gray-500">Search by title or SKU and manage minimum-stock thresholds.</p>
+                </div>
 
                 <button
                     onClick={() => {
@@ -156,6 +187,18 @@ export default function BooksInventory() {
                 </button>
             </div>
 
+            <div className="mb-4 flex flex-wrap gap-3">
+                <label className="sr-only" htmlFor="inventory-search">Search books by title or SKU</label>
+                <input id="inventory-search" type="search" value={search}
+                    onChange={(event) => { setLoading(true); setSearch(event.target.value); }}
+                    placeholder="Search title or SKU..."
+                    className="min-w-0 flex-1 rounded border border-gray-300 bg-white px-3 py-2" />
+                <button type="button" aria-pressed={showLowStock}
+                    onClick={() => { setLoading(true); setShowLowStock((value) => !value); }}
+                    className={`rounded border px-4 py-2 text-sm ${showLowStock ? "border-amber-500 bg-amber-50 text-amber-900" : "bg-white"}`}>
+                    {showLowStock ? "Show all books" : "Low stock only"}
+                </button>
+            </div>
             {apiError && <p role="alert" className="mb-4 text-red-700">{apiError} <button type="button" className="underline" onClick={() => void loadBooks()}>Retry</button></p>}
             {/* Add / Edit Form */}
             {showForm && (
@@ -173,6 +216,12 @@ export default function BooksInventory() {
                         </p>
                     )}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label htmlFor="inventory-sku" className="mb-2 block text-sm">SKU</label>
+                            <input id="inventory-sku" value={form.sku}
+                                onChange={(event) => setForm({ ...form, sku: event.target.value })}
+                                className={inputStyle} maxLength={80} required />
+                        </div>
                         <div>
                             <label htmlFor="inventory-book-name" className="mb-2 block text-sm">
                                 Book Name
@@ -248,6 +297,13 @@ export default function BooksInventory() {
                                 required
                             />
                         </div>
+                        <div>
+                            <label htmlFor="inventory-min-stock" className="mb-2 block text-sm">Minimum stock alert</label>
+                            <input id="inventory-min-stock" type="number" min="0" step="1"
+                                value={form.minStock}
+                                onChange={(event) => setForm({ ...form, minStock: event.target.value })}
+                                className={inputStyle} required />
+                        </div>
                     </div>
 
                     <div className="mt-6 flex gap-3">
@@ -288,10 +344,13 @@ export default function BooksInventory() {
                 <table className="w-full text-left text-sm">
                     <thead className="bg-[#f3f4f6]">
                     <tr>
+                        <th className="p-4">SKU</th>
                         <th className="p-4">Book Name</th>
                         <th className="p-4">Author</th>
                         <th className="p-4">Price</th>
                         <th className="p-4">Quantity</th>
+                        <th className="p-4">Min. Stock</th>
+                        <th className="p-4">Status</th>
                         <th className="p-4">Actions</th>
                     </tr>
                     </thead>
@@ -299,7 +358,7 @@ export default function BooksInventory() {
                     <tbody>
                     {filteredBooks.length === 0 ? (
                         <tr>
-                            <td colSpan={5} className="p-8 text-center text-gray-500">
+                            <td colSpan={7} className="p-8 text-center text-gray-500">
                                 {loading ? "Loading books..." : books.length === 0
                                     ? "No books added yet."
                                     : "No matching books found."}
@@ -311,10 +370,13 @@ export default function BooksInventory() {
                                 key={book.id}
                                 className="border-t border-gray-200 hover:bg-gray-50"
                             >
+                                <td className="p-4 font-mono text-xs">{book.sku}</td>
                                 <td className="p-4">{book.title}</td>
                                 <td className="p-4">{book.author}</td>
                                 <td className="p-4">Rs. {book.price}</td>
                                 <td className="p-4">{book.quantity}</td>
+                                <td className="p-4">{book.minStock}</td>
+                                <td className="p-4"><span className={book.quantity <= book.minStock ? "rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900" : "rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-900"}>{book.quantity <= book.minStock ? "Low stock" : "In stock"}</span></td>
                                 <td className="p-4">
                                     <div className="flex gap-2">
                                         <button
