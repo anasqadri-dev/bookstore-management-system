@@ -80,6 +80,7 @@ public class DatabaseRestoreService {
                         backupPath.getFileName().toString(),
                         snapshot.productCount(),
                         snapshot.saleCount(),
+                        snapshot.tableCounts(),
                         Instant.now());
             } catch (SQLException | RuntimeException restoreFailure) {
                 try {
