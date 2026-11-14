@@ -69,7 +69,9 @@ test("service readiness reports a timeout when the endpoint never becomes health
 test("normal child-process shutdown waits for its exit event", async () => {
     class Child extends EventEmitter {
         exitCode = null;
-        kill() {
+        signals = [];
+        kill(signal) {
+            this.signals.push(signal);
             setImmediate(() => {
                 this.exitCode = 0;
                 this.emit("exit", 0, null);
@@ -79,18 +81,19 @@ test("normal child-process shutdown waits for its exit event", async () => {
     }
     const child = new Child();
     assert.equal(await stopChildProcess(child, 100), "stopped");
+    assert.deepEqual(child.signals, ["SIGINT"]);
 });
 
 test("unresponsive child-process shutdown escalates after the timeout", async () => {
     class Child extends EventEmitter {
         exitCode = null;
-        calls = 0;
-        kill() {
-            this.calls += 1;
+        signals = [];
+        kill(signal) {
+            this.signals.push(signal);
             return true;
         }
     }
     const child = new Child();
     assert.equal(await stopChildProcess(child, 5), "forced");
-    assert.equal(child.calls, 2);
+    assert.deepEqual(child.signals, ["SIGINT", "SIGKILL"]);
 });
