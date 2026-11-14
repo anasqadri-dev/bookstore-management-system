@@ -31,6 +31,13 @@ export default function SchoolOrders() {
     const [products, setProducts] = useState<Product[]>([]);
     const [search, setSearch] = useState("");
     const [showForm, setShowForm] = useState(false);
+    const [showSchoolForm, setShowSchoolForm] = useState(false);
+    const [schoolName, setSchoolName] = useState("");
+    const [contactPerson, setContactPerson] = useState("");
+    const [schoolPhone, setSchoolPhone] = useState("");
+    const [schoolAddress, setSchoolAddress] = useState("");
+    const [savingSchool, setSavingSchool] = useState(false);
+    const [schoolError, setSchoolError] = useState("");
     const [schoolId, setSchoolId] = useState("");
     const [productId, setProductId] = useState("");
     const [quantity, setQuantity] = useState("1");
@@ -88,6 +95,37 @@ export default function SchoolOrders() {
             isMounted = false;
         };
     }, []);
+
+    async function createSchool(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (savingSchool || !schoolName.trim()) return;
+        setSavingSchool(true);
+        setSchoolError("");
+        setNotice("");
+        try {
+            const newSchool = await apiRequest<School>("/api/schools", {
+                method: "POST",
+                body: JSON.stringify({
+                    name: schoolName.trim(),
+                    contactPerson: contactPerson.trim(),
+                    phone: schoolPhone.trim(),
+                    address: schoolAddress.trim(),
+                }),
+            });
+            setSchools((previous) => [...previous, newSchool].sort((a, b) => a.name.localeCompare(b.name)));
+            setSchoolId(String(newSchool.id));
+            setSchoolName("");
+            setContactPerson("");
+            setSchoolPhone("");
+            setSchoolAddress("");
+            setShowSchoolForm(false);
+            setNotice("School registered successfully.");
+        } catch (err) {
+            setSchoolError(err instanceof Error ? err.message : "Could not register school. Please try again.");
+        } finally {
+            setSavingSchool(false);
+        }
+    }
 
     async function createOrder(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -170,11 +208,47 @@ export default function SchoolOrders() {
         <div className="space-y-7">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <p className="text-sm text-gray-600">Manage saved school orders. Editing and deleting orders are not supported by the current API.</p>
+                <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={() => { setShowSchoolForm((value) => !value); setSchoolError(""); }}
+                    className="rounded bg-slate-800 px-5 py-3 text-white hover:bg-slate-900">
+                    {showSchoolForm ? "Cancel School" : "+ Add School"}
+                </button>
                 <button type="button" onClick={() => { setShowForm((value) => !value); setFormError(""); }}
                     className="rounded bg-blue-600 px-5 py-3 text-white hover:bg-blue-700">
                     {showForm ? "Cancel" : "+ Add School Order"}
                 </button>
+                </div>
             </div>
+
+            {showSchoolForm && (
+                <form onSubmit={(event) => void createSchool(event)} aria-busy={savingSchool}
+                    className="space-y-4 rounded border bg-white p-6">
+                    <h3 className="text-xl font-semibold">Register School</h3>
+                    {schoolError && <p role="alert" className="text-red-700">{schoolError}</p>}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div><label htmlFor="new-school-name" className="mb-2 block">School Name *</label>
+                            <input id="new-school-name" required maxLength={255} disabled={savingSchool}
+                                value={schoolName} onChange={(event) => setSchoolName(event.target.value)}
+                                className="w-full rounded border p-3" /></div>
+                        <div><label htmlFor="school-contact" className="mb-2 block">Contact Person</label>
+                            <input id="school-contact" maxLength={255} disabled={savingSchool}
+                                value={contactPerson} onChange={(event) => setContactPerson(event.target.value)}
+                                className="w-full rounded border p-3" /></div>
+                        <div><label htmlFor="school-phone" className="mb-2 block">Phone</label>
+                            <input id="school-phone" maxLength={50} disabled={savingSchool}
+                                value={schoolPhone} onChange={(event) => setSchoolPhone(event.target.value)}
+                                className="w-full rounded border p-3" /></div>
+                        <div><label htmlFor="school-address" className="mb-2 block">Address</label>
+                            <input id="school-address" maxLength={500} disabled={savingSchool}
+                                value={schoolAddress} onChange={(event) => setSchoolAddress(event.target.value)}
+                                className="w-full rounded border p-3" /></div>
+                    </div>
+                    <button type="submit" disabled={savingSchool || !schoolName.trim()}
+                        className="rounded bg-blue-600 px-5 py-3 text-white disabled:opacity-50">
+                        {savingSchool ? "Saving..." : "Save School"}
+                    </button>
+                </form>
+            )}
 
             {notice && <p role="status" className="rounded bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
             {error && <div role="alert" className="rounded border border-red-200 bg-white p-4 text-red-700">
