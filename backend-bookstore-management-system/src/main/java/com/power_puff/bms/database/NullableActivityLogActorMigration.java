@@ -15,7 +15,7 @@ public class NullableActivityLogActorMigration implements VersionedSqliteMigrati
 
     @Override
     public int version() {
-        return 2;
+        return 4;
     }
 
     @Override
@@ -25,7 +25,7 @@ public class NullableActivityLogActorMigration implements VersionedSqliteMigrati
 
     @Override
     public String checksumSource() {
-        return "v2|activity_logs.user_id-nullable|copy-existing-rows|preserve-fk";
+        return "v4|activity_logs.user_id-nullable|copy-existing-rows|preserve-fk";
     }
 
     @Override
