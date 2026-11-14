@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -111,9 +113,11 @@ public class DatabaseRestoreService {
         try (Connection connection =
                      DriverManager.getConnection("jdbc:sqlite:" + backupPath)) {
             verifyConnectionDatabase(connection);
-            return new BackupSnapshot(
-                    countRows(connection, "products"),
-                    countRows(connection, "sales"));
+            Map<String, Long> tableCounts = new LinkedHashMap<>();
+            for (String tableName : REQUIRED_TABLES) {
+                tableCounts.put(tableName, countRows(connection, tableName));
+            }
+            return new BackupSnapshot(Map.copyOf(tableCounts));
         }
     }
 
@@ -184,7 +188,7 @@ public class DatabaseRestoreService {
     }
 
     private long countRows(Connection connection, String tableName) throws SQLException {
-        if (!"products".equals(tableName) && !"sales".equals(tableName)) {
+        if (!REQUIRED_TABLES.contains(tableName)) {
             throw new IllegalArgumentException("Unsupported restore verification table.");
         }
         try (Statement statement = connection.createStatement();
@@ -244,6 +248,13 @@ public class DatabaseRestoreService {
         }
     }
 
-    private record BackupSnapshot(long productCount, long saleCount) {
+    private record BackupSnapshot(Map<String, Long> tableCounts) {
+        private long productCount() {
+            return tableCounts.get("products");
+        }
+
+        private long saleCount() {
+            return tableCounts.get("sales");
+        }
     }
 }
