@@ -54,7 +54,7 @@ class DatabaseBackupControllerAuthorizationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"destinationPath":"%s"}
-                                """.formatted(backupFile.toString())))
+                                """.formatted(jsonEscape(backupFile.toString()))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value(
@@ -133,7 +133,7 @@ class DatabaseBackupControllerAuthorizationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"destinationPath":"%s"}
-                                """.formatted(temporaryDirectory.resolve("anonymous.db"))))
+                                """.formatted(jsonEscape(temporaryDirectory.resolve("anonymous.db").toString()))))
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/api/backup/restore").with(csrf())
@@ -143,4 +143,8 @@ class DatabaseBackupControllerAuthorizationTest {
                                 """.formatted(temporaryDirectory.resolve("anonymous.db"))))
                 .andExpect(status().isUnauthorized());
     }
+    private String jsonEscape(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
 }
