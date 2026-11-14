@@ -13,7 +13,14 @@ const API_BASE_URL = (
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8080"
 ).replace(/\/+$/, "");
 
-const client = createApiClient({ baseUrl: API_BASE_URL });
+const client = createApiClient({
+    baseUrl: API_BASE_URL,
+    onUnauthorized: () => {
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("bms:session-expired"));
+        }
+    },
+});
 
 export { ApiError };
 
