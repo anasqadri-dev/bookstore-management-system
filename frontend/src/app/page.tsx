@@ -125,6 +125,11 @@ function AppContent() {
     }
 
     return (
+        <>
+        <a href="#main-content"
+            className="sr-only z-50 rounded bg-white px-4 py-3 text-slate-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-4 focus:outline-blue-600">
+            Skip to main content
+        </a>
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
@@ -173,7 +178,7 @@ function AppContent() {
             </aside>
 
             {/* Main Content */}
-            <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10 print:h-auto print:overflow-visible print:p-0">
+            <main id="main-content" className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10 print:h-auto print:overflow-visible print:p-0">
 
                 {/* Header */}
                 <header className="print:hidden mb-8 flex flex-wrap items-center justify-between gap-4">
@@ -257,6 +262,7 @@ function AppContent() {
                 )}
             </main>
         </div>
+        </>
     );
 }
 
