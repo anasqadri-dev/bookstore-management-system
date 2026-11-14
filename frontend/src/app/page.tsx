@@ -1,8 +1,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Login from "../components/Login";
+import AdminSetup from "../components/AdminSetup";
+import ModuleErrorBoundary from "../components/ModuleErrorBoundary";
 import BooksInventory from "../components/BooksInventory";
 import SalesPOS from "../components/SalesPOS";
 import Suppliers from "../components/Suppliers";
@@ -11,26 +13,69 @@ import Reports from "../components/Reports";
 import Settings from "../components/Settings";
 import SalesHistory from "../components/SalesHistory";
 import PurchaseOrders from "../components/PurchaseOrders";
+import DashboardOverview from "../components/DashboardOverview";
 import { apiRequest, type AuthenticatedUser } from "../lib/api";
+import BackendReadiness from "../components/BackendReadiness";
+import { canAccessSection, canManageInventory, getVisibleSections } from "../lib/permissions.mjs";
+import { rememberVisitedPage } from "../lib/navigation-state.mjs";
 
-export default function Home() {
+function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
+    const [setupRequired, setSetupRequired] = useState(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
     const [activePage, setActivePage] = useState("Dashboard");
+    const [visitedPages, setVisitedPages] = useState<Set<string>>(() => new Set(["Dashboard"]));
+    const pageHeadingRef = useRef<HTMLHeadingElement>(null);
+    const previousPageRef = useRef(activePage);
+
+    useEffect(() => {
+        if (previousPageRef.current !== activePage) {
+            previousPageRef.current = activePage;
+            pageHeadingRef.current?.focus();
+        }
+    }, [activePage]);
+
+    useEffect(() => {
+        const handleSessionExpired = () => {
+            setCurrentUser(null);
+            setSetupRequired(false);
+            setSessionExpired(true);
+            setVisitedPages(new Set(["Dashboard"]));
+            setActivePage("Dashboard");
+        };
+        window.addEventListener("bms:session-expired", handleSessionExpired);
+        return () => window.removeEventListener("bms:session-expired", handleSessionExpired);
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
 
-        apiRequest<AuthenticatedUser>("/api/auth/me")
-            .then((user) => {
-                if (isMounted) setCurrentUser(user);
-            })
-            .catch(() => {
-                if (isMounted) setCurrentUser(null);
-            })
-            .finally(() => {
+        async function restoreSessionOrCheckFirstRun() {
+            try {
+                const user = await apiRequest<AuthenticatedUser>("/api/auth/me");
+                if (isMounted) {
+                    setCurrentUser(user);
+                    setSetupRequired(false);
+                }
+            } catch {
+                if (!isMounted) return;
+                setCurrentUser(null);
+                try {
+                    const status = await apiRequest<{ setupRequired: boolean }>(
+                        "/api/setup/status",
+                        { cache: "no-store" },
+                    );
+                    if (isMounted) setSetupRequired(status.setupRequired);
+                } catch {
+                    if (isMounted) setSetupRequired(false);
+                }
+            } finally {
                 if (isMounted) setIsSessionLoading(false);
-            });
+            }
+        }
+
+        void restoreSessionOrCheckFirstRun();
 
         return () => {
             isMounted = false;
@@ -49,22 +94,19 @@ export default function Home() {
         { name: "Settings", icon: "⚙" },
     ];
 
-    const stats = [
-        { title: "Total Books", value: "0" },
-        { title: "Today's Sales", value: "Rs. 0" },
-        { title: "Low Stock", value: "0" },
-        { title: "Suppliers", value: "0" },
-    ];
+    const visibleMenu = getVisibleSections(currentUser?.role ?? "STAFF", menu);
 
-    const visibleMenu = currentUser?.role === "ADMIN"
-        ? menu
-        : menu.filter((item) =>
-            ["Dashboard", "Books Inventory", "Sales / POS", "Sales History"]
-                .includes(item.name),
-        );
+    function navigateToPage(page: string) {
+        if (!currentUser || !canAccessSection(currentUser.role, page)) return;
+        setVisitedPages((previous) => rememberVisitedPage(previous, page));
+        setActivePage(page);
+    }
 
     function handleLogin(user: AuthenticatedUser) {
+        setSessionExpired(false);
+        setSetupRequired(false);
         setCurrentUser(user);
+        setVisitedPages(new Set(["Dashboard"]));
         setActivePage("Dashboard");
     }
 
@@ -75,6 +117,9 @@ export default function Home() {
             // Clear the local view even when the backend is unavailable.
         } finally {
             setCurrentUser(null);
+            setSetupRequired(false);
+            setSessionExpired(false);
+            setVisitedPages(new Set(["Dashboard"]));
             setActivePage("Dashboard");
         }
     }
@@ -89,14 +134,21 @@ export default function Home() {
 
     // The backend session, not a client-side flag, determines authentication.
     if (!currentUser) {
-        return <Login onLogin={handleLogin} />;
+        return setupRequired
+            ? <AdminSetup onComplete={() => setSetupRequired(false)} />
+            : <Login onLogin={handleLogin} notice={sessionExpired ? "Your session has expired. Please sign in again." : ""} />;
     }
 
     return (
+        <>
+        <a href="#main-content"
+            className="sr-only z-50 rounded bg-white px-4 py-3 text-slate-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-4 focus:outline-blue-600">
+            Skip to main content
+        </a>
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
-            <aside className="bg-[#030712] p-6 text-white md:h-screen md:w-[320px] md:shrink-0 md:overflow-y-auto">
+            <aside className="print:hidden bg-[#030712] p-6 text-white md:h-screen md:w-[220px] md:shrink-0 md:overflow-y-auto lg:w-[260px] xl:w-[300px]">
 
                 <h1 className="text-2xl font-bold">
                     Book Store
@@ -106,19 +158,20 @@ export default function Home() {
                     Management System
                 </p>
 
-                <nav className="mt-10 space-y-2">
+                <nav className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 md:mt-10 md:grid-cols-1">
                     {visibleMenu.map((item) => (
                         <button
                             key={item.name}
                             type="button"
-                            onClick={() => setActivePage(item.name)}
-                            className={`flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm transition ${
+                            onClick={() => navigateToPage(item.name)}
+                            aria-current={activePage === item.name ? "page" : undefined}
+                            className={`flex min-w-0 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-xs transition sm:text-sm lg:gap-4 lg:px-4 ${
                                 activePage === item.name
                                     ? "bg-slate-700 text-white"
                                     : "text-gray-300 hover:bg-slate-800"
                             }`}
                         >
-                            <span className="w-5 text-xl">
+                            <span className="w-5 shrink-0 text-xl">
                                 {item.icon}
                             </span>
                             {item.name}
@@ -140,12 +193,12 @@ export default function Home() {
             </aside>
 
             {/* Main Content */}
-            <main className="min-w-0 flex-1 p-6 md:h-screen md:overflow-y-auto md:p-10">
+            <main id="main-content" className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10 print:h-auto print:overflow-visible print:p-0">
 
                 {/* Header */}
-                <header className="mb-10 flex items-center justify-between gap-4">
+                <header className="print:hidden mb-8 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-3xl font-bold">
+                        <h2 ref={pageHeadingRef} tabIndex={-1} className="text-2xl font-bold sm:text-3xl">
                             {activePage}
                         </h2>
 
@@ -154,92 +207,81 @@ export default function Home() {
                         </p>
                     </div>
 
-                    <div className="shrink-0 text-sm">
+                    <div className="min-w-0 break-words text-sm">
                         ♙ &nbsp; {currentUser.fullName} ({currentUser.role})
                     </div>
                 </header>
 
-                {activePage === "Dashboard" ? (
-                    <>
-                        {/* Statistics Cards */}
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                            {stats.map((stat) => (
-                                <div
-                                    key={stat.title}
-                                    className="rounded border border-gray-200 bg-white p-6"
-                                >
-                                    <p className="text-gray-500">
-                                        {stat.title}
-                                    </p>
-
-                                    <h3 className="mt-5 text-3xl font-bold">
-                                        {stat.value}
-                                    </h3>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Recent Sales */}
-                        <section className="mt-8 rounded border border-gray-200 bg-white p-6">
-                            <h3 className="mb-6 text-2xl font-semibold">
-                                Recent Sales
-                            </h3>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-[#f3f4f6]">
-                                    <tr>
-                                        <th className="p-4">Book Name</th>
-                                        <th className="p-4">Quantity</th>
-                                        <th className="p-4">Amount</th>
-                                        <th className="p-4">Date</th>
-                                    </tr>
-                                    </thead>
-
-                                    <tbody>
-                                    <tr>
-                                        <td
-                                            colSpan={4}
-                                            className="p-9 text-center text-gray-500"
-                                        >
-                                            No sales records available.
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </>
-
-                ) : activePage === "Books Inventory" ? (
-                    <BooksInventory />
-                ) : activePage === "Suppliers" ? (
-                    <Suppliers />
-                ) : activePage === "School Orders" ? (
-                    <SchoolOrders />
-                ) : activePage === "Sales / POS" ? (
-                    <SalesPOS />
-                ) : activePage === "Sales History" ? (
-                    <SalesHistory />
-                ) : activePage === "Purchase Orders" ? (
-                    <PurchaseOrders />
-                ) : activePage === "Reports" ? (
-                    <Reports />
-                ) : activePage === "Settings" ? (
-                    <Settings />
-                ) : (
-
-                    <section className="rounded border border-gray-200 bg-white p-6">
-                        <h3 className="text-xl font-semibold">
-                            {activePage}
-                        </h3>
-
-                        <p className="mt-3 text-gray-500">
-                            This section is under development.
-                        </p>
-                    </section>
+                {visitedPages.has("Dashboard") && (
+                    <div hidden={activePage !== "Dashboard"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <DashboardOverview />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {visitedPages.has("Books Inventory") && (
+                    <div hidden={activePage !== "Books Inventory"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <BooksInventory canManage={canManageInventory(currentUser.role)} />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Suppliers") && (
+                    <div hidden={activePage !== "Suppliers"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <Suppliers />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("School Orders") && (
+                    <div hidden={activePage !== "School Orders"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <SchoolOrders />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {visitedPages.has("Sales / POS") && (
+                    <div hidden={activePage !== "Sales / POS"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <SalesPOS />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {visitedPages.has("Sales History") && (
+                    <div hidden={activePage !== "Sales History"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <SalesHistory />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Purchase Orders") && (
+                    <div hidden={activePage !== "Purchase Orders"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <PurchaseOrders />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Reports") && (
+                    <div hidden={activePage !== "Reports"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <Reports />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Settings") && (
+                    <div hidden={activePage !== "Settings"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <Settings />
+                        </ModuleErrorBoundary>
+                    </div>
                 )}
             </main>
         </div>
+        </>
     );
+}
+
+
+export default function Home() {
+    return <BackendReadiness><AppContent /></BackendReadiness>;
 }

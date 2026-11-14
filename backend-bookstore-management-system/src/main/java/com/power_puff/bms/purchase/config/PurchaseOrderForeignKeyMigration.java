@@ -1,10 +1,8 @@
 package com.power_puff.bms.purchase.config;
 
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import com.power_puff.bms.database.VersionedSqliteMigration;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +16,7 @@ import java.util.Set;
  * tables inside one transaction before the originals are replaced.
  */
 @Component
-public class PurchaseOrderForeignKeyMigration implements ApplicationRunner {
+public class PurchaseOrderForeignKeyMigration implements VersionedSqliteMigration {
 
     private static final Set<String> PURCHASE_ORDER_FOREIGN_KEYS = Set.of(
             "suppliers:supplier_id->id",
@@ -28,43 +26,31 @@ public class PurchaseOrderForeignKeyMigration implements ApplicationRunner {
             "purchase_orders:purchase_order_id->id",
             "products:product_id->id");
 
-    private final DataSource dataSource;
 
-    public PurchaseOrderForeignKeyMigration(DataSource dataSource) {
-        this.dataSource = dataSource;
+    @Override
+    public int version() {
+        return 3;
     }
 
     @Override
-    public void run(ApplicationArguments args) {
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
-            statement.execute("PRAGMA foreign_keys=OFF");
+    public String description() {
+        return "Add purchase-order and purchase-order-item foreign keys";
+    }
 
+    @Override
+    public String checksumSource() {
+        return "v3|purchase_orders:supplier_id->suppliers.id,user_id->users.id|purchase_order_items:purchase_order_id->purchase_orders.id,product_id->products.id|ordered-received-check|copy-existing-rows|foreign-key-check";
+    }
+
+    @Override
+    public void migrate(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
             if (hasExpectedForeignKeys(statement)) {
-                statement.execute("PRAGMA foreign_keys=ON");
                 return;
             }
-
-            connection.setAutoCommit(false);
-            try {
-                rebuildPurchaseOrderTables(statement);
-                verifyForeignKeys(statement);
-                verifyNoForeignKeyViolations(statement);
-                connection.commit();
-            } catch (Exception exception) {
-                connection.rollback();
-                throw exception;
-            } finally {
-                connection.setAutoCommit(true);
-                statement.execute("PRAGMA foreign_keys=ON");
-            }
-
+            rebuildPurchaseOrderTables(statement);
             verifyForeignKeys(statement);
-        } catch (Exception exception) {
-            throw new IllegalStateException(
-                    "Could not apply the purchase-order SQLite foreign-key migration. "
-                            + "Existing purchase-order data was not intentionally discarded.",
-                    exception);
+            verifyNoForeignKeyViolations(statement);
         }
     }
 

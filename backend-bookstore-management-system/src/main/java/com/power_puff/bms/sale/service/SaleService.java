@@ -1,6 +1,7 @@
 package com.power_puff.bms.sale.service;
 
 import com.power_puff.bms.activitylog.service.ActivityLogService;
+import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.common.exception.ResourceNotFoundException;
 import com.power_puff.bms.product.entity.Product;
 import com.power_puff.bms.product.repository.ProductRepository;
@@ -13,6 +14,8 @@ import com.power_puff.bms.sale.mapper.SaleMapper;
 import com.power_puff.bms.sale.repository.SaleRepository;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,17 +35,20 @@ public class SaleService {
     private final UserRepository userRepository;
     private final SaleCalculator saleCalculator;
     private final ActivityLogService activityLogService;
+    private final EntityManager entityManager;
 
     public SaleService(SaleRepository saleRepository,
                        ProductRepository productRepository,
                        UserRepository userRepository,
                        SaleCalculator saleCalculator,
-                       ActivityLogService activityLogService) {
+                       ActivityLogService activityLogService,
+                       EntityManager entityManager) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.saleCalculator = saleCalculator;
         this.activityLogService = activityLogService;
+        this.entityManager = entityManager;
     }
 
     public SaleReceiptResponse create(SaleRequest request, String username) {
@@ -97,9 +103,30 @@ public class SaleService {
                 totalAmount,
                 user);
 
+        // The SQL predicate is the final authority; the earlier Java check is
+        // only an early user-friendly validation using the values just read.
+        // Every decrement is in the same transaction as the saved sale and log.
         for (PreparedLine line : preparedLines) {
-            line.product().setQuantity(
-                    line.product().getQuantity() - line.quantity());
+            int updated;
+            try {
+                updated = productRepository.decrementStockIfAvailable(
+                        line.product().getId(), line.quantity());
+            } catch (DataAccessException exception) {
+                throw new DuplicateResourceException(
+                        "Inventory is being updated by another operation. Please retry checkout.");
+            }
+
+            if (updated != 1) {
+                entityManager.refresh(line.product());
+                throw new DuplicateResourceException(
+                        "Stock for " + line.product().getSku()
+                                + " changed during checkout. Available quantity is "
+                                + line.product().getQuantity() + "; please review the cart.");
+            }
+
+            // Bulk JPQL updates bypass the persistence context. Refresh before
+            // mapping the receipt or flushing other managed entities.
+            entityManager.refresh(line.product());
             sale.addItem(new SaleItem(
                     line.product(),
                     line.quantity(),
@@ -115,6 +142,13 @@ public class SaleService {
                         + ", total=" + savedSale.getTotalAmount());
 
         return SaleMapper.toReceipt(savedSale);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SaleReceiptResponse> getSalesHistory() {
+        return saleRepository.findAllByOrderBySaleDateDesc().stream()
+                .map(SaleMapper::toReceipt)
+                .toList();
     }
 
     @Transactional(readOnly = true)

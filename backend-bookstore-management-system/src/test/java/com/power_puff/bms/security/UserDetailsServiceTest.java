@@ -23,11 +23,16 @@ class UserDetailsServiceTest {
 
         var details = configuration.userDetailsService(repository).loadUserByUsername("staff1");
 
-        assertEquals("staff1", details.getUsername());
-        assertEquals("$2a$encoded", details.getPassword());
-        assertTrue(details.getAuthorities().stream()
+        assertInstanceOf(BmsUserPrincipal.class, details);
+        BmsUserPrincipal principal = (BmsUserPrincipal) details;
+        assertEquals(staff.getId(), principal.getUserId());
+        assertEquals("staff1", principal.getUsername());
+        assertEquals("$2a$encoded", principal.getPassword());
+        assertEquals("STAFF", principal.getRole());
+        assertTrue(principal.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_STAFF")));
-        assertTrue(details.isEnabled());
+        assertTrue(principal.matchesCurrentPasswordHash("$2a$encoded"));
+        assertFalse(principal.matchesCurrentPasswordHash("$2a$changed"));
     }
 
     @Test

@@ -86,7 +86,7 @@ class ReportApiPerformanceTest {
         productRepository.flush();
         savedProducts.forEach(product -> productIds.add(product.getId()));
 
-        ZoneId shopTimeZone = ZoneId.systemDefault();
+        ZoneId shopTimeZone = ZoneId.of("Asia/Karachi");
         reportDate = LocalDate.now(shopTimeZone);
         Instant startOfDay = reportDate.atStartOfDay(shopTimeZone).toInstant();
 

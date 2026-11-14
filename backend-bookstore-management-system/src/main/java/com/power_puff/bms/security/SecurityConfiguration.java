@@ -15,7 +15,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,6 +22,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -44,11 +46,13 @@ public class SecurityConfiguration {
     public UserDetailsService userDetailsService(UserRepository userRepository) {
         return username -> userRepository.findByUsernameIgnoreCase(username)
                 .filter(com.power_puff.bms.user.entity.User::isActive)
-                .map(account -> User.withUsername(account.getUsername())
-                        .password(account.getPasswordHash())
-                        .roles(account.getRole().name())
-                        .build())
-                .orElseThrow(() -> new UsernameNotFoundException("User account was not found or is inactive."));
+                .map(account -> new BmsUserPrincipal(
+                        account.getId(),
+                        account.getUsername(),
+                        account.getPasswordHash(),
+                        account.getRole().name()))
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User account was not found or is inactive."));
     }
 
     @Bean
@@ -96,11 +100,23 @@ public class SecurityConfiguration {
             HttpSecurity http,
             AuthenticationProvider authenticationProvider,
             SecurityContextRepository securityContextRepository,
-            CorsConfigurationSource corsConfigurationSource) throws Exception {
+            CorsConfigurationSource corsConfigurationSource,
+            UserRepository userRepository) throws Exception {
+
+        CsrfTokenRequestAttributeHandler csrfRequestHandler =
+                new CsrfTokenRequestAttributeHandler();
 
         http.authenticationProvider(authenticationProvider)
+                .addFilterAfter(
+                        new UserSessionValidationFilter(userRepository),
+                        SecurityContextHolderFilter.class)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(new HttpSessionCsrfTokenRepository())
+                        .csrfTokenRequestHandler(csrfRequestHandler)
+                        // Initial login has no authenticated session yet. All other unsafe
+                        // requests, including logout and business mutations, require a token.
+                        .ignoringRequestMatchers("/api/auth/login"))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .requestCache(cache -> cache.disable())
@@ -109,7 +125,9 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/health", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/csrf",
+                                "/api/setup/status", "/api/setup")
+                        .permitAll()
                         .requestMatchers(
                         "/api/users/**",
                         "/api/suppliers/**",

@@ -1,153 +1,223 @@
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { filterSavedSales, summarizeSavedSales } from "../lib/sales-history-model.mjs";
+import { apiRequest } from "../lib/api";
 
-type Sale = {
-    id: string;
-    date: string;
-    customer: string;
-    book: string;
+type SaleItem = {
+    productId: number;
+    sku: string;
+    title: string;
     quantity: number;
-    total: number;
-    payment: "Cash" | "Card" | "Online";
+    unitPrice: number;
+    subtotal: number;
 };
 
+type Sale = {
+    id: number;
+    saleDate: string;
+    customerName: string | null;
+    totalAmount: number;
+    cashierName: string;
+    items: SaleItem[];
+};
+
+const money = (amount: number) =>
+    amount.toLocaleString("en-PK", {
+        style: "currency",
+        currency: "PKR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+function displayDate(value: string) {
+    return new Intl.DateTimeFormat("en-PK", {
+        timeZone: "Asia/Karachi",
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(value));
+}
+
 export default function SalesHistory() {
-    const [sales] = useState<Sale[]>([]);
+    const [sales, setSales] = useState<Sale[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [search, setSearch] = useState("");
     const [date, setDate] = useState("");
     const [selected, setSelected] = useState<Sale | null>(null);
 
-    const filtered = sales.filter((sale) => {
-        const matchSearch =
-            `${sale.id} ${sale.customer} ${sale.book}`
-                .toLowerCase()
-                .includes(search.toLowerCase());
+    useEffect(() => {
+        let active = true;
+        apiRequest<Sale[]>("/api/sales", { cache: "no-store" })
+            .then((data) => {
+                if (!Array.isArray(data)) {
+                    throw new Error("The sales history response was invalid.");
+                }
+                if (active) setSales(data);
+            })
+            .catch((error: unknown) => {
+                if (active) {
+                    setLoadError(error instanceof Error
+                        ? error.message
+                        : "Unable to load saved sales.");
+                }
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
 
-        return matchSearch && (!date || sale.date === date);
-    });
+        return () => { active = false; };
+    }, []);
 
-    const totalRevenue = filtered.reduce(
-        (sum, sale) => sum + sale.total, 0
-    );
-
-    const totalBooks = filtered.reduce(
-        (sum, sale) => sum + sale.quantity, 0
-    );
-
-    const money = (value: number) =>
-        `Rs. ${value.toLocaleString()}`;
+    const filtered = filterSavedSales(sales, search, date);
+    const summary = summarizeSavedSales(filtered);
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h3 className="text-xl font-semibold">Sales Overview</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                        View and track bookstore transactions.
-                    </p>
-                </div>
+            <div>
+                <h3 className="text-xl font-semibold">Sales History</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                    Saved cash transactions retrieved from the bookstore database.
+                </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                    { label: "Total Sales", value: filtered.length },
-                    { label: "Revenue", value: money(totalRevenue) },
-                    { label: "Books Sold", value: totalBooks },
-                ].map((card) => (
-                    <div
-                        key={card.label}
-                        className="rounded-lg border border-gray-200 bg-white p-6"
-                    >
-                        <p className="text-sm text-gray-500">{card.label}</p>
-                        <h3 className="mt-3 text-2xl font-bold">{card.value}</h3>
-                    </div>
-                ))}
+                <div className="rounded-lg border border-gray-200 bg-white p-6">
+                    <p className="text-sm text-gray-500">Transactions</p>
+                    <p className="mt-3 text-2xl font-bold">{summary.transactionCount}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-6">
+                    <p className="text-sm text-gray-500">Revenue</p>
+                    <p className="mt-3 text-2xl font-bold">{money(summary.revenueCents / 100)}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-6">
+                    <p className="text-sm text-gray-500">Books Sold</p>
+                    <p className="mt-3 text-2xl font-bold">{summary.bookQuantity}</p>
+                </div>
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <div className="mb-5 flex flex-wrap gap-3">
+                    <label htmlFor="sales-history-search" className="sr-only">
+                        Search sales by ID, customer, cashier, SKU or book
+                    </label>
                     <input
+                        id="sales-history-search"
+                        type="search"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search sales..."
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Search saved sales..."
                         className="min-w-0 flex-1 rounded-md border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-600"
                     />
+                    <label htmlFor="sales-history-date" className="sr-only">Filter sales by date</label>
                     <input
+                        id="sales-history-date"
                         type="date"
                         value={date}
-                        onChange={(e) => setDate(e.target.value)}
+                        onChange={(event) => setDate(event.target.value)}
                         className="rounded-md border border-gray-300 px-4 py-3 text-sm"
                     />
                     <button
-                        onClick={() => {
-                            setSearch("");
-                            setDate("");
-                        }}
+                        type="button"
+                        onClick={() => { setSearch(""); setDate(""); }}
                         className="rounded-md border px-4 py-3 text-sm hover:bg-gray-50"
                     >
                         Clear
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-100 text-gray-600">
-                        <tr>
-                            {["Sale ID", "Date", "Customer", "Book",
-                                "Qty", "Total", "Payment", "Action"].map((h) => (
-                                <th key={h} className="whitespace-nowrap p-4">{h}</th>
-                            ))}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {filtered.length === 0 ? (
-                            <tr>
-                                <td colSpan={8} className="p-12 text-center text-gray-500">
-                                    No sales records available.
-                                </td>
-                            </tr>
-                        ) : filtered.map((sale) => (
-                            <tr key={sale.id} className="border-b">
-                                <td className="p-4 font-medium">{sale.id}</td>
-                                <td className="p-4">{sale.date}</td>
-                                <td className="p-4">{sale.customer}</td>
-                                <td className="p-4">{sale.book}</td>
-                                <td className="p-4">{sale.quantity}</td>
-                                <td className="p-4">{money(sale.total)}</td>
-                                <td className="p-4">{sale.payment}</td>
-                                <td className="p-4">
-                                    <button
-                                        onClick={() => setSelected(sale)}
-                                        className="font-medium text-blue-700 hover:underline"
-                                    >
-                                        View
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </div>
+                {loading ? (
+                    <p role="status" className="p-10 text-center text-sm text-gray-500">
+                        Loading saved sales...
+                    </p>
+                ) : loadError ? (
+                    <div role="alert" className="rounded-md bg-red-50 p-4 text-sm text-red-800">
+                        {loadError}
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-100 text-gray-600">
+                                <tr>
+                                    {["Sale ID", "Date", "Customer", "Items", "Qty", "Total", "Cashier", "Action"].map((heading) => (
+                                        <th key={heading} scope="col" className="whitespace-nowrap p-4">{heading}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="p-12 text-center text-gray-500">
+                                            {sales.length === 0 ? "No saved sales are available." : "No sales match these filters."}
+                                        </td>
+                                    </tr>
+                                ) : filtered.map((sale) => (
+                                    <tr key={sale.id} className="border-b">
+                                        <td className="p-4 font-medium">#{sale.id}</td>
+                                        <td className="whitespace-nowrap p-4">{displayDate(sale.saleDate)}</td>
+                                        <td className="p-4">{sale.customerName || "Walk-in Customer"}</td>
+                                        <td className="max-w-xs p-4">{sale.items.map((item) => item.title).join(", ")}</td>
+                                        <td className="p-4">{sale.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
+                                        <td className="whitespace-nowrap p-4">{money(sale.totalAmount)}</td>
+                                        <td className="p-4">{sale.cashierName}</td>
+                                        <td className="p-4">
+                                            <button
+                                                type="button"
+                                                aria-label={`View saved receipt for sale ${sale.id}`}
+                                                onClick={() => setSelected(sale)}
+                                                className="font-medium text-blue-700 hover:underline"
+                                            >
+                                                View receipt
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {selected && (
-                <div className="rounded-lg border bg-white p-6">
-                    <div className="flex justify-between">
-                        <h3 className="text-lg font-semibold">Sale Details</h3>
-                        <button onClick={() => setSelected(null)}>Close</button>
+                <section aria-labelledby="sale-history-detail-title" className="rounded-lg border bg-white p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h3 id="sale-history-detail-title" className="text-lg font-semibold">
+                            Saved Receipt — #{selected.id}
+                        </h3>
+                        <button type="button" onClick={() => setSelected(null)} aria-label="Close receipt details">
+                            Close
+                        </button>
                     </div>
-                    <div className="mt-4 space-y-2 text-sm">
-                        <p>Sale ID: {selected.id}</p>
-                        <p>Date: {selected.date}</p>
-                        <p>Customer: {selected.customer}</p>
-                        <p>Book: {selected.book}</p>
-                        <p>Quantity: {selected.quantity}</p>
-                        <p>Payment: {selected.payment}</p>
-                        <p className="font-bold">Total: {money(selected.total)}</p>
+                    <div className="mt-4 space-y-1 text-sm">
+                        <p>Date: {displayDate(selected.saleDate)}</p>
+                        <p>Customer: {selected.customerName || "Walk-in Customer"}</p>
+                        <p>Cashier: {selected.cashierName}</p>
                     </div>
-                </div>
+                    <div className="mt-4 overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="border-b text-gray-500">
+                                    <th scope="col" className="py-2">Book</th>
+                                    <th scope="col" className="py-2">Qty</th>
+                                    <th scope="col" className="py-2">Unit price</th>
+                                    <th scope="col" className="py-2 text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {selected.items.map((item, index) => (
+                                    <tr key={`${item.productId}-${index}`} className="border-b">
+                                        <td className="py-2">{item.title} <span className="text-gray-500">({item.sku})</span></td>
+                                        <td className="py-2">{item.quantity}</td>
+                                        <td className="py-2">{money(item.unitPrice)}</td>
+                                        <td className="py-2 text-right">{money(item.subtotal)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p className="mt-4 text-right text-lg font-bold">Total: {money(selected.totalAmount)}</p>
+                    <p className="mt-1 text-right text-xs text-gray-500">Payment method: Cash</p>
+                </section>
             )}
         </div>
     );

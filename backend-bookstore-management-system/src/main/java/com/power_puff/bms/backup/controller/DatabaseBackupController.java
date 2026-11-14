@@ -6,6 +6,7 @@ import com.power_puff.bms.backup.dto.DatabaseRestoreRequest;
 import com.power_puff.bms.backup.dto.DatabaseRestoreResult;
 import com.power_puff.bms.backup.service.DatabaseBackupService;
 import com.power_puff.bms.backup.service.DatabaseRestoreService;
+import com.power_puff.bms.security.ActiveSessionRegistry;
 import com.power_puff.bms.common.response.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -23,11 +24,14 @@ public class DatabaseBackupController {
 
     private final DatabaseBackupService backupService;
     private final DatabaseRestoreService restoreService;
+    private final ActiveSessionRegistry activeSessionRegistry;
 
     public DatabaseBackupController(DatabaseBackupService backupService,
-                                    DatabaseRestoreService restoreService) {
+                                    DatabaseRestoreService restoreService,
+                                    ActiveSessionRegistry activeSessionRegistry) {
         this.backupService = backupService;
         this.restoreService = restoreService;
+        this.activeSessionRegistry = activeSessionRegistry;
     }
 
     @PostMapping
@@ -42,6 +46,9 @@ public class DatabaseBackupController {
     public ResponseEntity<ApiResponse<DatabaseRestoreResult>> restoreBackup(
             @Valid @RequestBody DatabaseRestoreRequest request) {
         DatabaseRestoreResult result = restoreService.restore(request.backupPath());
+        // Restore replaces the users table as well as business data. Revoke every
+        // session authenticated against the previous database snapshot.
+        activeSessionRegistry.invalidateAll();
         return ResponseEntity.ok(
                 ApiResponse.success("Database restored successfully.", result));
     }

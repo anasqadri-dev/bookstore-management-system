@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -87,7 +88,7 @@ class SchoolOrderControllerAuthorizationTest {
                 new BigDecimal("20.00"), 10, 1));
         productId = product.getId();
 
-        mockMvc.perform(post("/api/school-orders")
+        mockMvc.perform(post("/api/school-orders").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"schoolId":%d,"items":[{"productId":%d,"quantity":2}]}
@@ -108,7 +109,7 @@ class SchoolOrderControllerAuthorizationTest {
         assertEquals(1, schoolOrderRepository.findAllBySchoolIdOrderByOrderDateDesc(
                 schoolId).size());
 
-        mockMvc.perform(patch("/api/school-orders/{id}/status", createdOrderId)
+        mockMvc.perform(patch("/api/school-orders/{id}/status", createdOrderId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"status":"READY"}
@@ -116,7 +117,7 @@ class SchoolOrderControllerAuthorizationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("READY"));
 
-        mockMvc.perform(patch("/api/school-orders/{id}/status", createdOrderId)
+        mockMvc.perform(patch("/api/school-orders/{id}/status", createdOrderId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"status":"DELIVERED"}
@@ -134,7 +135,7 @@ class SchoolOrderControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "order-status-admin", roles = "ADMIN")
     void rejectsUnsupportedSchoolOrderStatusValuesAsBadRequest() throws Exception {
-        mockMvc.perform(patch("/api/school-orders/1/status")
+        mockMvc.perform(patch("/api/school-orders/1/status").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"status":"CANCELLED"}
@@ -146,7 +147,7 @@ class SchoolOrderControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "order-status-admin", roles = "ADMIN")
     void rejectsMissingSchoolOrderStatusAsBadRequest() throws Exception {
-        mockMvc.perform(patch("/api/school-orders/1/status")
+        mockMvc.perform(patch("/api/school-orders/1/status").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {}
@@ -158,7 +159,7 @@ class SchoolOrderControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "order-missing-school-admin", roles = "ADMIN")
     void rejectsOrderForUnknownSchoolAsNotFound() throws Exception {
-        mockMvc.perform(post("/api/school-orders")
+        mockMvc.perform(post("/api/school-orders").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"schoolId":999999,
@@ -171,7 +172,7 @@ class SchoolOrderControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "order-controller-staff", roles = "STAFF")
     void staffCannotCreateOrListSchoolOrders() throws Exception {
-        mockMvc.perform(post("/api/school-orders")
+        mockMvc.perform(post("/api/school-orders").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"schoolId":1,"items":[{"productId":1,"quantity":1}]}
@@ -181,7 +182,7 @@ class SchoolOrderControllerAuthorizationTest {
         mockMvc.perform(get("/api/school-orders"))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(patch("/api/school-orders/1/status")
+        mockMvc.perform(patch("/api/school-orders/1/status").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"status":"READY"}

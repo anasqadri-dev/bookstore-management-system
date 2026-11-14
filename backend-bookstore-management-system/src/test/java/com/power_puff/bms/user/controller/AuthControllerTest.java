@@ -4,7 +4,8 @@ import com.power_puff.bms.activitylog.service.ActivityLogService;
 import com.power_puff.bms.user.dto.LoginRequest;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.entity.UserRole;
-import com.power_puff.bms.user.repository.UserRepository;
+import com.power_puff.bms.user.service.UserAccountService;
+import com.power_puff.bms.security.ActiveSessionRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -17,7 +18,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -34,7 +34,7 @@ class AuthControllerTest {
     void successfulLoginCreatesSessionAndRecordsLogin() {
         AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         SecurityContextRepository contextRepository = mock(SecurityContextRepository.class);
-        UserRepository userRepository = mock(UserRepository.class);
+        UserAccountService userAccountService = mock(UserAccountService.class);
         ActivityLogService activityLogService = mock(ActivityLogService.class);
 
         User staff = new User("staff1", "$2a$encoded", "Staff Member", UserRole.STAFF);
@@ -42,10 +42,11 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any())).thenReturn(
                 new UsernamePasswordAuthenticationToken(
                         "staff1", null, List.of(new SimpleGrantedAuthority("ROLE_STAFF"))));
-        when(userRepository.findByUsernameIgnoreCase("staff1")).thenReturn(Optional.of(staff));
+        when(userAccountService.findActiveUserByUsername("staff1")).thenReturn(staff);
 
         AuthController controller = new AuthController(
-                authenticationManager, contextRepository, userRepository, activityLogService);
+                authenticationManager, contextRepository, userAccountService, activityLogService,
+                new ActiveSessionRegistry());
 
         var response = controller.login(new LoginRequest("staff1", "StrongPass123"),
                 new MockHttpServletRequest(), new MockHttpServletResponse());
@@ -63,15 +64,17 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
+        ActivityLogService activityLogService = mock(ActivityLogService.class);
         AuthController controller = new AuthController(
                 authenticationManager,
                 mock(SecurityContextRepository.class),
-                mock(UserRepository.class),
-                mock(ActivityLogService.class));
+                mock(UserAccountService.class),
+                activityLogService, new ActiveSessionRegistry());
 
         assertThrows(BadCredentialsException.class, () -> controller.login(
                 new LoginRequest("staff1", "wrong-password"),
                 new MockHttpServletRequest(), new MockHttpServletResponse()));
+        verify(activityLogService).recordAuthenticationFailure("staff1");
     }
 
     @Test
@@ -83,7 +86,8 @@ class AuthControllerTest {
 
         AuthController controller = new AuthController(
                 mock(AuthenticationManager.class), contextRepository,
-                mock(UserRepository.class), mock(ActivityLogService.class));
+                mock(UserAccountService.class), mock(ActivityLogService.class),
+                new ActiveSessionRegistry());
 
         var result = controller.logout(request, response);
 

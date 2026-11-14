@@ -14,6 +14,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -32,6 +34,9 @@ public class DatabaseRestoreService {
             "purchase_order_items",
             "activity_logs"
     );
+
+    private static final Set<String> MIGRATION_HISTORY_COLUMNS = Set.of(
+            "version", "description", "checksum", "applied_at");
 
     private final DataSource dataSource;
     private final BackupPathValidator pathValidator;
@@ -68,6 +73,7 @@ public class DatabaseRestoreService {
             rollbackRequired = true;
             try {
                 executeRestore(connection, backupPath);
+                ensureAdminBootstrapStateTable(connection);
                 verifyConnectionDatabase(connection);
                 rollbackRequired = false;
 
@@ -75,6 +81,7 @@ public class DatabaseRestoreService {
                         backupPath.getFileName().toString(),
                         snapshot.productCount(),
                         snapshot.saleCount(),
+                        snapshot.tableCounts(),
                         Instant.now());
             } catch (SQLException | RuntimeException restoreFailure) {
                 try {
@@ -108,9 +115,11 @@ public class DatabaseRestoreService {
         try (Connection connection =
                      DriverManager.getConnection("jdbc:sqlite:" + backupPath)) {
             verifyConnectionDatabase(connection);
-            return new BackupSnapshot(
-                    countRows(connection, "products"),
-                    countRows(connection, "sales"));
+            Map<String, Long> tableCounts = new LinkedHashMap<>();
+            for (String tableName : REQUIRED_TABLES) {
+                tableCounts.put(tableName, countRows(connection, tableName));
+            }
+            return new BackupSnapshot(Map.copyOf(tableCounts));
         }
     }
 
@@ -142,11 +151,47 @@ public class DatabaseRestoreService {
             }
         }
 
-        if (!REQUIRED_TABLES.equals(actualTables)) {
+        // Older valid backups may predate either internal metadata table.
+        // They are accepted, and the bootstrap marker is recreated after restore.
+        Set<String> normalizedTables = new HashSet<>(actualTables);
+        normalizedTables.remove("schema_migrations");
+        normalizedTables.remove("admin_bootstrap_state");
+        if (!REQUIRED_TABLES.equals(normalizedTables)) {
             throw new SQLException(
                     "Backup schema does not match the supported Bookstore database. "
-                            + "Expected tables " + REQUIRED_TABLES
-                            + " but found " + actualTables + ".");
+                            + "Expected business tables " + REQUIRED_TABLES
+                            + " with optional internal metadata, but found "
+                            + actualTables + ".");
+        }
+
+        if (actualTables.contains("admin_bootstrap_state")) {
+            Set<String> actualBootstrapColumns = new HashSet<>();
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(
+                         "PRAGMA table_info('admin_bootstrap_state')")) {
+                while (resultSet.next()) {
+                    actualBootstrapColumns.add(resultSet.getString("name"));
+                }
+            }
+            if (!Set.of("id", "completed_at").equals(actualBootstrapColumns)) {
+                throw new SQLException(
+                        "Backup contains an unsupported first-run setup marker table.");
+            }
+        }
+
+        if (actualTables.contains("schema_migrations")) {
+            Set<String> actualHistoryColumns = new HashSet<>();
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(
+                         "PRAGMA table_info('schema_migrations')")) {
+                while (resultSet.next()) {
+                    actualHistoryColumns.add(resultSet.getString("name"));
+                }
+            }
+            if (!MIGRATION_HISTORY_COLUMNS.equals(actualHistoryColumns)) {
+                throw new SQLException(
+                        "Backup contains an unsupported schema migration history table.");
+            }
         }
 
         try (Statement statement = connection.createStatement();
@@ -159,8 +204,19 @@ public class DatabaseRestoreService {
         }
     }
 
+    private void ensureAdminBootstrapStateTable(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS admin_bootstrap_state (
+                        id INTEGER PRIMARY KEY CHECK (id = 1),
+                        completed_at TIMESTAMP NOT NULL
+                    )
+                    """);
+        }
+    }
+
     private long countRows(Connection connection, String tableName) throws SQLException {
-        if (!"products".equals(tableName) && !"sales".equals(tableName)) {
+        if (!REQUIRED_TABLES.contains(tableName)) {
             throw new IllegalArgumentException("Unsupported restore verification table.");
         }
         try (Statement statement = connection.createStatement();
@@ -220,6 +276,13 @@ public class DatabaseRestoreService {
         }
     }
 
-    private record BackupSnapshot(long productCount, long saleCount) {
+    private record BackupSnapshot(Map<String, Long> tableCounts) {
+        private long productCount() {
+            return tableCounts.get("products");
+        }
+
+        private long saleCount() {
+            return tableCounts.get("sales");
+        }
     }
 }

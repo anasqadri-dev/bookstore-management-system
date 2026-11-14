@@ -16,6 +16,8 @@ import com.power_puff.bms.supplier.entity.Supplier;
 import com.power_puff.bms.supplier.repository.SupplierRepository;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,15 +35,18 @@ public class PurchaseOrderService {
     private final SupplierRepository supplierRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final EntityManager entityManager;
 
     public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
                                 SupplierRepository supplierRepository,
                                 ProductRepository productRepository,
-                                UserRepository userRepository) {
+                                UserRepository userRepository,
+                                EntityManager entityManager) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.entityManager = entityManager;
     }
 
     public PurchaseOrderResponse create(PurchaseOrderRequest request, String username) {
@@ -112,20 +117,6 @@ public class PurchaseOrderService {
             }
         }
 
-        Map<Integer, Integer> updatedStock = new LinkedHashMap<>();
-        for (Map.Entry<Integer, Integer> entry : receivedQuantities.entrySet()) {
-            Product product = productsById.get(entry.getKey());
-            try {
-                updatedStock.put(
-                        entry.getKey(),
-                        Math.addExact(product.getQuantity(), entry.getValue()));
-            } catch (ArithmeticException exception) {
-                throw new IllegalArgumentException(
-                        "Receiving this purchase order would exceed the supported stock range for "
-                                + product.getSku() + ".", exception);
-            }
-        }
-
         LocalDate receivedDate = LocalDate.now();
         int claimed = purchaseOrderRepository.markReceivedIfOrdered(
                 purchaseOrderId,
@@ -137,9 +128,29 @@ public class PurchaseOrderService {
                     "Goods have already been received for purchase order " + purchaseOrderId + ".");
         }
 
-        updatedStock.forEach((productId, quantity) ->
-                productsById.get(productId).setQuantity(quantity));
-        productRepository.saveAllAndFlush(productsById.values());
+        // Receipt and every stock increment share this transaction. The
+        // conditional database expression prevents lost updates with sales.
+        for (Map.Entry<Integer, Integer> entry : receivedQuantities.entrySet()) {
+            Product product = productsById.get(entry.getKey());
+            int incrementBy = entry.getValue();
+            int maximumBeforeIncrement = Integer.MAX_VALUE - incrementBy;
+            int updated;
+            try {
+                updated = productRepository.incrementStockIfWithinRange(
+                        product.getId(), incrementBy, maximumBeforeIncrement);
+            } catch (DataAccessException exception) {
+                throw new DuplicateResourceException(
+                        "Inventory is being updated by another operation. Please retry goods receipt.");
+            }
+
+            if (updated != 1) {
+                throw new IllegalArgumentException(
+                        "Receiving this purchase order would exceed the supported stock range for "
+                                + product.getSku()
+                                + " or inventory changed concurrently. No goods were received.");
+            }
+            entityManager.refresh(product);
+        }
 
         order.setStatus(PurchaseOrderStatus.RECEIVED);
         order.setReceivedDate(receivedDate);

@@ -12,6 +12,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,7 +45,7 @@ class SupplierControllerAuthorizationTest {
     void adminCanCreateAndListSuppliers() throws Exception {
         String supplierName = "Admin Test Supplier";
 
-        mockMvc.perform(post("/api/suppliers")
+        mockMvc.perform(post("/api/suppliers").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"%s","phone":"03001234567","address":"Main Market"}
@@ -70,7 +71,7 @@ class SupplierControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "supplier-staff", roles = "STAFF")
     void staffCannotCreateOrListSuppliers() throws Exception {
-        mockMvc.perform(post("/api/suppliers")
+        mockMvc.perform(post("/api/suppliers").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"Staff Must Not Create Supplier"}
@@ -89,7 +90,7 @@ class SupplierControllerAuthorizationTest {
     @Test
     @WithMockUser(username = "supplier-admin", roles = "ADMIN")
     void rejectsMissingOrBlankSupplierName() throws Exception {
-        mockMvc.perform(post("/api/suppliers")
+        mockMvc.perform(post("/api/suppliers").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"   ","phone":"03001234567"}

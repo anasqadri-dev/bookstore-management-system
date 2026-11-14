@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -64,7 +65,7 @@ class SaleControllerTest {
         when(saleService.create(any(SaleRequest.class), eq("counter-staff")))
                 .thenReturn(receipt);
 
-        mockMvc.perform(post("/api/sales")
+        mockMvc.perform(post("/api/sales").with(csrf())
                         .principal(() -> "counter-staff")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -90,7 +91,7 @@ class SaleControllerTest {
 
     @Test
     void rejectsSaleWithNoItemsBeforeCallingService() throws Exception {
-        mockMvc.perform(post("/api/sales")
+        mockMvc.perform(post("/api/sales").with(csrf())
                         .principal(() -> "counter-staff")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -100,6 +101,29 @@ class SaleControllerTest {
                 .andExpect(jsonPath("$.success").value(false));
 
         verifyNoInteractions(saleService);
+    }
+
+    @Test
+    void listsPersistedSalesAsSavedReceipts() throws Exception {
+        SaleReceiptResponse receipt = new SaleReceiptResponse(
+                12,
+                Instant.parse("2026-11-10T10:00:00Z"),
+                "Walk-in Customer",
+                new BigDecimal("30.00"),
+                "Counter Staff",
+                List.of(new SaleItemReceiptResponse(
+                        7, "BOOK-7", "Sample Book", 2,
+                        new BigDecimal("15.00"), new BigDecimal("30.00"))));
+        when(saleService.getSalesHistory()).thenReturn(List.of(receipt));
+
+        mockMvc.perform(get("/api/sales"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].id").value(12))
+                .andExpect(jsonPath("$.data[0].totalAmount").value(30.00))
+                .andExpect(jsonPath("$.data[0].items[0].title").value("Sample Book"));
+
+        verify(saleService).getSalesHistory();
     }
 
     @Test

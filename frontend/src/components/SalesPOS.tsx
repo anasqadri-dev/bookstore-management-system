@@ -1,246 +1,266 @@
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { apiRequest } from "../lib/api";
 
-type SaleItem = {
+type Product = { id: number; sku: string; title: string; price: number; quantity: number };
+type CartItem = { productId: number; title: string; price: number; quantity: number };
+type SaleReceipt = {
     id: number;
-    title: string;
-    price: number;
-    quantity: number;
+    saleDate: string;
+    customerName: string | null;
+    totalAmount: number;
+    cashierName: string;
+    items: { productId: number; sku: string; title: string; quantity: number; unitPrice: number; subtotal: number }[];
 };
-
-const availableBooks = [
-    { id: 1, title: "Java Programming", price: 1500 },
-    { id: 2, title: "Python Basics", price: 1200 },
-    { id: 3, title: "Data Structures", price: 1800 },
-    { id: 4, title: "Database Systems", price: 2000 },
-];
+const money = (amount: number) => `Rs. ${amount.toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function SalesPOS() {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
+    const [reload, setReload] = useState(0);
     const [selectedBook, setSelectedBook] = useState("");
     const [quantity, setQuantity] = useState(1);
-    const [cart, setCart] = useState<SaleItem[]>([]);
+    const [cart, setCart] = useState<CartItem[]>([]);
     const [customer, setCustomer] = useState("");
-    const [showBill, setShowBill] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const pending = useRef(false);
+    const [error, setError] = useState("");
+    const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
+    const [receiptLookupId, setReceiptLookupId] = useState("");
+    const [receiptLoading, setReceiptLoading] = useState(false);
+    const [receiptError, setReceiptError] = useState("");
+    const [savedSaleId, setSavedSaleId] = useState<number | null>(null);
+    const [paperWidth, setPaperWidth] = useState<"58" | "80" | "standard">("80");
+
+    async function loadSavedReceipt(saleId: number) {
+        setReceiptLoading(true);
+        setReceiptError("");
+        setReceipt(null);
+        try {
+            const savedReceipt = await apiRequest<SaleReceipt>(
+                `/api/sales/${saleId}/receipt`,
+                { cache: "no-store" },
+            );
+            if (!savedReceipt || savedReceipt.id !== saleId
+                || !Number.isFinite(savedReceipt.totalAmount)
+                || !Array.isArray(savedReceipt.items)) {
+                throw new Error("The server returned an invalid saved receipt.");
+            }
+            setReceipt(savedReceipt);
+            setSavedSaleId(saleId);
+        } catch (reason) {
+            setReceiptError(reason instanceof Error
+                ? reason.message
+                : `Unable to retrieve receipt #${saleId}.`);
+        } finally {
+            setReceiptLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        let active = true;
+        apiRequest<Product[]>("/api/products", { cache: "no-store" })
+            .then((data) => {
+                if (!Array.isArray(data)) throw new Error("Invalid inventory response.");
+                if (active) { setProducts(data); setLoadError(""); }
+            })
+            .catch(() => { if (active) setLoadError("Unable to load inventory. Check your connection and permissions."); })
+            .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, [reload]);
 
     function addToCart() {
-        const book = availableBooks.find(
-            (item) => item.id === Number(selectedBook)
-        );
-
-        if (!book) {
-            alert("Please select a book.");
-            return;
-        }
-
+        setError("");
+        const book = products.find((item) => item.id === Number(selectedBook));
+        if (!book) { setError("Select a book from inventory."); return; }
         if (!Number.isSafeInteger(quantity) || quantity < 1) {
-            alert("Please enter a valid quantity.");
-            return;
+            setError("Quantity must be a positive whole number."); return;
         }
+        const existing = cart.find((item) => item.productId === book.id);
+        const nextQuantity = (existing?.quantity ?? 0) + quantity;
+        if (!Number.isSafeInteger(nextQuantity) || nextQuantity > book.quantity) {
+            setError(`Only ${book.quantity} copies of ${book.title} are currently available.`); return;
+        }
+        setCart((previous) => existing
+            ? previous.map((item) => item.productId === book.id ? { ...item, quantity: nextQuantity } : item)
+            : [...previous, { productId: book.id, title: book.title, price: book.price, quantity }]);
+        setSelectedBook("");
+        setQuantity(1);
+        setReceipt(null);
+    }
 
-        setCart((previous) => {
-            const existing = previous.find((item) => item.id === book.id);
-
-            if (existing) {
-                return previous.map((item) =>
-                    item.id === book.id
-                        ? { ...item, quantity: item.quantity + quantity }
-                        : item
-                );
+    async function confirmSale() {
+        if (pending.current) return;
+        if (cart.length === 0) { setError("Add at least one book before checkout."); return; }
+        if (!window.confirm("Confirm this cash sale? Inventory will be deducted.")) return;
+        pending.current = true;
+        setSaving(true);
+        setError("");
+        setReceipt(null);
+        try {
+            const saved = await apiRequest<{ id: number }>("/api/sales", {
+                method: "POST",
+                body: JSON.stringify({
+                    customerName: customer.trim() || "Walk-in Customer",
+                    items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+                }),
+            });
+            if (!saved || !Number.isSafeInteger(saved.id) || saved.id < 1) {
+                throw new Error("The server did not confirm a valid sale ID. Check Sales History before retrying.");
             }
 
-            return [...previous, { ...book, quantity }];
-        });
-
-        setSelectedBook("");
-        setQuantity(1);
-        setShowBill(false);
-    }
-
-    function removeFromCart(id: number) {
-        setCart((previous) => previous.filter((item) => item.id !== id));
-        setShowBill(false);
-    }
-
-    const total = cart.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-    );
-
-    function generateBill() {
-        if (cart.length === 0) {
-            alert("Please add books to the cart first.");
-            return;
+            // The sale is committed now. Clear the cart before loading its receipt so a
+            // receipt-read failure can never make the user accidentally submit the sale again.
+            const committedSaleId = saved.id;
+            setCart([]);
+            setCustomer("");
+            setSelectedBook("");
+            setQuantity(1);
+            setReceiptLookupId(String(committedSaleId));
+            setSavedSaleId(committedSaleId);
+            setLoading(true);
+            setReload((value) => value + 1);
+            await loadSavedReceipt(committedSaleId);
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Checkout failed. Your cart was retained.");
+        } finally {
+            pending.current = false;
+            setSaving(false);
         }
-
-        setShowBill(true);
     }
 
-    function newSale() {
-        setCart([]);
-        setCustomer("");
-        setSelectedBook("");
-        setQuantity(1);
-        setShowBill(false);
-    }
+    const estimatedTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const inputStyle = "w-full rounded border border-gray-300 p-3 disabled:opacity-50";
 
     return (
         <div className="space-y-6">
             <section className="rounded border border-gray-200 bg-white p-6">
-                <h3 className="mb-5 text-xl font-semibold">New Sale</h3>
-
+                <h3 className="mb-5 text-xl font-semibold">New Cash Sale</h3>
+                {error && <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-red-700">{error}</p>}
+                {loadError && <div role="alert" className="mb-4"><p>{loadError}</p><button type="button" className="underline" onClick={() => { setLoading(true); setReload((value) => value + 1); }}>Retry inventory</button></div>}
+                {loading && <p role="status" className="mb-4">Loading inventory...</p>}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
-                        <label  htmlFor="sales-customer-name" className="mb-2 block text-sm">Customer Name</label>
-                        <input
-                            id="sales-customer-name"
-                            type="text"
-                            placeholder="Enter customer name"
-                            value={customer}
-                            onChange={(e) => setCustomer(e.target.value)}
-                            className="w-full rounded border border-gray-300 p-3"
-                        />
+                        <label htmlFor="sales-customer-name" className="mb-2 block text-sm">Customer Name</label>
+                        <input id="sales-customer-name" className={inputStyle} disabled={saving} value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="Walk-in Customer" />
                     </div>
-
                     <div>
-                        <label  htmlFor="sales-book" className="mb-2 block text-sm">Select Book</label>
-                        <select
-                            id="sales-book"
-                            value={selectedBook}
-                            onChange={(e) => setSelectedBook(e.target.value)}
-                            className="w-full rounded border border-gray-300 bg-white p-3"
-                        >
+                        <label htmlFor="sales-book" className="mb-2 block text-sm">Select Book</label>
+                        <select id="sales-book" className={inputStyle} disabled={saving || loading || Boolean(loadError)} value={selectedBook} onChange={(event) => setSelectedBook(event.target.value)}>
                             <option value="">Choose a book</option>
-                            {availableBooks.map((book) => (
-                                <option key={book.id} value={book.id}>
-                                    {book.title} - Rs. {book.price}
-                                </option>
+                            {products.filter((product) => product.quantity > 0).map((book) => (
+                                <option key={book.id} value={book.id}>{book.title} ({book.sku}) — {money(book.price)} — {book.quantity} in stock</option>
                             ))}
                         </select>
                     </div>
-
                     <div>
                         <label htmlFor="sales-quantity" className="mb-2 block text-sm">Quantity</label>
-                        <input
-                            id="sales-quantity"
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={quantity}
-                            onChange={(e) => setQuantity(Number(e.target.value))}
-                            className="w-full rounded border border-gray-300 p-3"
-                        />
+                        <input id="sales-quantity" type="number" min="1" step="1" className={inputStyle} disabled={saving} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} />
                     </div>
                 </div>
-
-                <button
-                    onClick={addToCart}
-                    className="mt-5 rounded bg-blue-600 px-5 py-3 text-white hover:bg-blue-700"
-                >
-                    + Add to Cart
-                </button>
+                <button type="button" disabled={saving || loading || Boolean(loadError)} onClick={addToCart} className="mt-5 rounded bg-blue-600 px-5 py-3 text-white disabled:opacity-50">+ Add to Cart</button>
             </section>
-
             <section className="rounded border border-gray-200 bg-white p-6">
                 <h3 className="mb-5 text-xl font-semibold">Shopping Cart</h3>
-
+                <p className="mb-3 text-sm text-gray-600">Prices below are estimates. The backend confirms the final cash total.</p>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-100">
-                        <tr>
-                            <th className="p-4">Book Name</th>
-                            <th className="p-4">Price</th>
-                            <th className="p-4">Quantity</th>
-                            <th className="p-4">Subtotal</th>
-                            <th className="p-4">Action</th>
-                        </tr>
-                        </thead>
-
+                        <thead className="bg-gray-100"><tr><th className="p-4">Book</th><th className="p-4">Price</th><th className="p-4">Qty</th><th className="p-4">Subtotal</th><th className="p-4">Action</th></tr></thead>
                         <tbody>
-                        {cart.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={5}
-                                    className="p-8 text-center text-gray-500"
-                                >
-                                    No books added to cart.
-                                </td>
-                            </tr>
-                        ) : (
-                            cart.map((item) => (
-                                <tr key={item.id} className="border-t border-gray-200">
-                                    <td className="p-4">{item.title}</td>
-                                    <td className="p-4">Rs. {item.price}</td>
-                                    <td className="p-4">{item.quantity}</td>
-                                    <td className="p-4">
-                                        Rs. {item.price * item.quantity}
-                                    </td>
-                                    <td className="p-4">
-                                        <button
-                                            onClick={() => removeFromCart(item.id)}
-                                            className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
-                                        >
-                                            Remove
-                                        </button>
-                                    </td>
+                            {cart.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-gray-500">No books added to cart.</td></tr> : cart.map((item) => (
+                                <tr key={item.productId} className="border-t">
+                                    <td className="p-4">{item.title}</td><td className="p-4">{money(item.price)}</td><td className="p-4">{item.quantity}</td><td className="p-4">{money(item.price * item.quantity)}</td>
+                                    <td className="p-4"><button type="button" disabled={saving} aria-label={`Remove ${item.title} from cart`} onClick={() => setCart((previous) => previous.filter((entry) => entry.productId !== item.productId))} className="text-red-700 disabled:opacity-50">Remove</button></td>
                                 </tr>
-                            ))
-                        )}
+                            ))}
                         </tbody>
                     </table>
                 </div>
-
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-                    <h4 className="text-xl font-bold">Total: Rs. {total}</h4>
-
+                    <h4 className="text-xl font-bold">Estimated total: {money(estimatedTotal)}</h4>
                     <div className="flex gap-3">
-                        <button
-                            onClick={newSale}
-                            className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
-                        >
-                            New Sale
-                        </button>
-                        <button
-                            onClick={generateBill}
-                            className="rounded bg-blue-600 px-5 py-2 text-white hover:bg-blue-700"
-                        >
-                            Generate Bill
-                        </button>
+                        <button type="button" disabled={saving} onClick={() => { setCart([]); setCustomer(""); setReceipt(null); setReceiptError(""); setError(""); }} className="rounded border px-4 py-2 disabled:opacity-50">Clear Cart</button>
+                        <button type="button" disabled={saving || cart.length === 0} onClick={() => void confirmSale()} className="rounded bg-blue-600 px-5 py-2 text-white disabled:opacity-50">{saving ? "Saving sale..." : "Confirm Cash Sale"}</button>
                     </div>
                 </div>
             </section>
-
-            {showBill && (
-                <section className="rounded border border-gray-200 bg-white p-6">
-                    <h3 className="text-center text-2xl font-bold">Qadri Books</h3>
-                    <p className="mt-1 text-center text-gray-500">
-                        Customer Bill Preview
-                    </p>
-
-                    <p className="mt-6">
-                        <strong>Customer:</strong> {customer.trim() || "Walk-in Customer"}
-                    </p>
-
-                    <div className="mt-4 space-y-2">
-                        {cart.map((item) => (
-                            <div
-                                key={item.id}
-                                className="flex justify-between border-b border-gray-200 py-2"
-                            >
-                <span>
-                  {item.title} × {item.quantity}
-                </span>
-                                <span>Rs. {item.price * item.quantity}</span>
-                            </div>
-                        ))}
+            <section className="rounded border border-gray-200 bg-white p-6">
+                <h3 className="text-lg font-semibold">Retrieve a saved receipt</h3>
+                <form className="mt-3 flex flex-wrap gap-3" onSubmit={(event) => {
+                    event.preventDefault();
+                    const id = Number(receiptLookupId);
+                    if (Number.isSafeInteger(id) && id > 0) void loadSavedReceipt(id);
+                    else setReceiptError("Enter a valid saved sale ID.");
+                }}>
+                    <label htmlFor="receipt-sale-id" className="sr-only">Saved sale ID</label>
+                    <input id="receipt-sale-id" inputMode="numeric" pattern="[0-9]*"
+                        value={receiptLookupId} onChange={(event) => setReceiptLookupId(event.target.value)}
+                        placeholder="Enter sale ID" className="min-w-0 flex-1 rounded border border-gray-300 px-3 py-2" />
+                    <button type="submit" disabled={receiptLoading || !receiptLookupId.trim()}
+                        className="rounded bg-slate-800 px-4 py-2 text-white disabled:opacity-50">
+                        {receiptLoading ? "Loading receipt..." : "Load receipt"}
+                    </button>
+                </form>
+                {receiptError && <p role="alert" className="mt-3 text-sm text-red-700">{receiptError}</p>}
+                {savedSaleId !== null && !receipt && !receiptError && (
+                    <p role="status" className="mt-3 text-sm text-green-800">Sale #{savedSaleId} was saved. Its receipt is not currently loaded.</p>
+                )}
+            </section>
+            {receipt && <section className="rounded border border-green-200 bg-white p-6">
+                <div className="print:hidden mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 className="text-xl font-bold text-green-800">Saved receipt #{receipt.id}</h3>
+                        <p className="mt-1 text-sm text-gray-600">This receipt is loaded from the saved sale record.</p>
                     </div>
-
-                    <h4 className="mt-5 text-right text-xl font-bold">
-                        Grand Total: Rs. {total}
-                    </h4>
-                </section>
-            )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <label htmlFor="receipt-paper-width" className="text-sm">Paper</label>
+                        <select id="receipt-paper-width" value={paperWidth}
+                            onChange={(event) => setPaperWidth(event.target.value as "58" | "80" | "standard")}
+                            className="rounded border border-gray-300 bg-white px-3 py-2 text-sm">
+                            <option value="58">58 mm thermal</option>
+                            <option value="80">80 mm thermal</option>
+                            <option value="standard">A4 / PDF</option>
+                        </select>
+                        <button type="button" onClick={() => window.print()}
+                            className="rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
+                            Print receipt
+                        </button>
+                    </div>
+                </div>
+                <div className="receipt-print mx-auto bg-white text-black" data-paper-width={paperWidth}>
+                    <header className="receipt-print-center">
+                        <h1 className="receipt-store-name">Book Store</h1>
+                        <p>Sales receipt</p>
+                        <p>Receipt #{receipt.id}</p>
+                    </header>
+                    <div className="receipt-print-meta">
+                        <p>Date: {new Intl.DateTimeFormat("en-PK", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date(receipt.saleDate))}</p>
+                        <p>Customer: {receipt.customerName || "Walk-in Customer"}</p>
+                        <p>Cashier: {receipt.cashierName}</p>
+                    </div>
+                    <table className="receipt-print-table">
+                        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+                        <tbody>{receipt.items.map((item) => (
+                            <tr key={item.productId}>
+                                <td><span>{item.title}</span><small>{item.sku}</small></td>
+                                <td>{item.quantity}</td>
+                                <td>{money(item.unitPrice)}</td>
+                                <td>{money(item.subtotal)}</td>
+                            </tr>
+                        ))}</tbody>
+                    </table>
+                    <div className="receipt-print-total">
+                        <p><span>Payment</span><strong>Cash</strong></p>
+                        <p className="receipt-grand-total"><span>Grand total</span><strong>{money(receipt.totalAmount)}</strong></p>
+                    </div>
+                    <footer className="receipt-print-center">
+                        <p>Thank you for shopping with us!</p>
+                        <p>Please keep this receipt for your records.</p>
+                    </footer>
+                </div>
+            </section>}
         </div>
     );
 }

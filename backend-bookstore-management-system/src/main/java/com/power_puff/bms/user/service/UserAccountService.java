@@ -1,5 +1,6 @@
 package com.power_puff.bms.user.service;
 
+import com.power_puff.bms.activitylog.service.ActivityLogService;
 import com.power_puff.bms.common.exception.DuplicateResourceException;
 import com.power_puff.bms.common.exception.ResourceNotFoundException;
 import com.power_puff.bms.user.dto.CreateStaffRequest;
@@ -24,10 +25,14 @@ public class UserAccountService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ActivityLogService activityLogService;
 
-    public UserAccountService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserAccountService(UserRepository userRepository,
+                              PasswordEncoder passwordEncoder,
+                              ActivityLogService activityLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.activityLogService = activityLogService;
     }
 
     public UserResponse createStaff(CreateStaffRequest request) {
@@ -37,14 +42,21 @@ public class UserAccountService {
 
         User user = new User(username, passwordEncoder.encode(request.password()),
                 request.fullName().trim(), UserRole.STAFF);
-        return UserMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        activityLogService.recordCurrentUserAction(
+                "STAFF_CREATED", "Created Staff account id=" + saved.getId()
+                        + ", username=" + saved.getUsername());
+        return UserMapper.toResponse(saved);
     }
 
     public UserResponse updateStaff(Long id, UpdateStaffRequest request) {
         User user = getManagedStaff(id);
+        boolean nameChanged = !user.getFullName().equals(request.fullName().trim());
+        boolean wasActive = user.isActive();
+        boolean passwordChanged = request.newPassword() != null && !request.newPassword().isBlank();
         user.setFullName(request.fullName().trim());
 
-        if (request.newPassword() != null && !request.newPassword().isBlank()) {
+        if (passwordChanged) {
             validateBcryptPasswordLength(request.newPassword());
             user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         }
@@ -52,13 +64,44 @@ public class UserAccountService {
             user.setActive(request.active());
         }
 
-        return UserMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        if (passwordChanged) {
+            activityLogService.recordCurrentUserAction(
+                    "STAFF_PASSWORD_CHANGED", "Changed password for Staff account id="
+                            + saved.getId() + ", username=" + saved.getUsername());
+        }
+        if (wasActive && !saved.isActive()) {
+            activityLogService.recordCurrentUserAction(
+                    "STAFF_DEACTIVATED", "Deactivated Staff account id="
+                            + saved.getId() + ", username=" + saved.getUsername());
+        }
+        if (nameChanged || (!wasActive && saved.isActive())) {
+            activityLogService.recordCurrentUserAction(
+                    "STAFF_UPDATED", "Updated Staff account id="
+                            + saved.getId() + ", username=" + saved.getUsername());
+        }
+        return UserMapper.toResponse(saved);
     }
 
     public UserResponse deactivateStaff(Long id) {
         User user = getManagedStaff(id);
+        boolean wasActive = user.isActive();
         user.setActive(false);
-        return UserMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        if (wasActive) {
+            activityLogService.recordCurrentUserAction(
+                    "STAFF_DEACTIVATED", "Deactivated Staff account id="
+                            + saved.getId() + ", username=" + saved.getUsername());
+        }
+        return UserMapper.toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public User findActiveUserByUsername(String username) {
+        return userRepository.findByUsernameIgnoreCase(username)
+                .filter(User::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Authenticated user account was not found or is inactive."));
     }
 
     @Transactional(readOnly = true)

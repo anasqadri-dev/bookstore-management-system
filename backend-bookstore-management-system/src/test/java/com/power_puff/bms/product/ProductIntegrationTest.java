@@ -30,6 +30,7 @@ import java.util.List;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -92,7 +93,7 @@ class ProductIntegrationTest {
 
     @Test
     void createsAndRetrievesProductThroughApi() throws Exception {
-        mockMvc.perform(post("/api/products")
+        mockMvc.perform(post("/api/products").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validProductJson("BK-300", "Integration Book", 7, 2)))
                 .andExpect(status().isCreated())
@@ -109,12 +110,12 @@ class ProductIntegrationTest {
 
     @Test
     void rejectsDuplicateSkuWithConflictResponse() throws Exception {
-        mockMvc.perform(post("/api/products")
+        mockMvc.perform(post("/api/products").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validProductJson("BK-301", "First", 5, 1)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/products")
+        mockMvc.perform(post("/api/products").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(validProductJson("bk-301", "Duplicate", 4, 1)))
                 .andExpect(status().isConflict())
@@ -123,7 +124,7 @@ class ProductIntegrationTest {
 
     @Test
     void rejectsInvalidProductRequest() throws Exception {
-        mockMvc.perform(post("/api/products")
+        mockMvc.perform(post("/api/products").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"sku":" ","title":"","author":null,"price":0,"quantity":-1,"minStock":-1}
@@ -138,7 +139,7 @@ class ProductIntegrationTest {
         Product saved = productRepository.saveAndFlush(new Product(
                 "BK-302", "Old title", null, new BigDecimal("50.00"), 5, 2));
 
-        mockMvc.perform(put("/api/products/{id}", saved.getId())
+        mockMvc.perform(put("/api/products/{id}", saved.getId()).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validProductJson("BK-302", "New title", 9, 3)))
                 .andExpect(status().isOk())
@@ -192,7 +193,7 @@ class ProductIntegrationTest {
                 new BigDecimal("10.00"), new BigDecimal("10.00")));
         saleRepository.saveAndFlush(sale);
 
-        mockMvc.perform(delete("/api/products/{id}", saved.getId()))
+        mockMvc.perform(delete("/api/products/{id}", saved.getId()).with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false));
 
@@ -204,7 +205,7 @@ class ProductIntegrationTest {
         Product saved = productRepository.saveAndFlush(new Product(
                 "UNUSED-1", "Unused Product", null, new BigDecimal("10.00"), 4, 1));
 
-        mockMvc.perform(delete("/api/products/{id}", saved.getId()))
+        mockMvc.perform(delete("/api/products/{id}", saved.getId()).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 

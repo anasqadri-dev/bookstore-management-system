@@ -58,6 +58,22 @@ class ProductValidationTest {
     }
 
     @Test
+    void acceptsTwoDecimalCurrencyValuesAndRejectsUnsupportedScaleOrPrecision() {
+        ProductRequest valid = new ProductRequest(
+                "BK-104", "Currency Book", null, new BigDecimal("19.99"), 1, 0);
+        ProductRequest extraFraction = new ProductRequest(
+                "BK-105", "Fractional Book", null, new BigDecimal("19.999"), 1, 0);
+        ProductRequest tooManyIntegerDigits = new ProductRequest(
+                "BK-106", "Large Book", null, new BigDecimal("123456789.00"), 1, 0);
+
+        assertTrue(validator.validate(valid).isEmpty());
+        assertTrue(validator.validate(extraFraction).stream()
+                .anyMatch(v -> v.getPropertyPath().toString().equals("price")));
+        assertTrue(validator.validate(tooManyIntegerDigits).stream()
+                .anyMatch(v -> v.getPropertyPath().toString().equals("price")));
+    }
+
+    @Test
     void rejectsNegativeQuantityAndMinimumStock() {
         ProductRequest request = new ProductRequest(
                 "BK-103", "Book", null, new BigDecimal("1.00"), -1, -1);

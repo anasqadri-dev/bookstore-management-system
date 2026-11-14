@@ -74,6 +74,8 @@ class DatabaseSchemaContractTest {
                 FROM sqlite_master
                 WHERE type = 'table'
                   AND name NOT LIKE 'sqlite_%'
+                  AND name <> 'schema_migrations'
+                  AND name <> 'admin_bootstrap_state'
                 """,
                 (resultSet, rowNumber) -> resultSet.getString("name")));
 
