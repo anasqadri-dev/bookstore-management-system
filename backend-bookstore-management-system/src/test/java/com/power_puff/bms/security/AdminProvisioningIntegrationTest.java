@@ -103,6 +103,15 @@ class AdminProvisioningIntegrationTest {
                 () -> provisioningService.provisionInitialAdmin(
                         "second", "AnotherStrongPass123", "Second Owner"));
         assertEquals(1, userRepository.count());
+
+        // The durable marker keeps setup disabled even if an account row is later
+        // removed by an out-of-band recovery operation.
+        userRepository.deleteAll();
+        assertFalse(provisioningService.isSetupRequired());
+        assertThrows(DuplicateResourceException.class,
+                () -> provisioningService.provisionInitialAdmin(
+                        "third", "AnotherStrongPass123", "Third Owner"));
+        assertEquals(0, userRepository.count());
         assertEquals(1, countBootstrapMarkers());
     }
 
@@ -244,6 +253,13 @@ class AdminProvisioningIntegrationTest {
                         .content("""
                                 {"username":"owner","password":"short","fullName":"Store Owner"}
                                 """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/setup")
+                        .session(session)
+                        .header("X-CSRF-TOKEN", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isBadRequest());
 
         assertEquals(0, userRepository.count());
