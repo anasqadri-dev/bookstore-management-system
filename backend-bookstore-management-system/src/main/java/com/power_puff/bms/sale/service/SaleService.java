@@ -145,6 +145,13 @@ public class SaleService {
     }
 
     @Transactional(readOnly = true)
+    public List<SaleReceiptResponse> getSalesHistory() {
+        return saleRepository.findAllByOrderBySaleDateDesc().stream()
+                .map(SaleMapper::toReceipt)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public SaleReceiptResponse getReceipt(Integer saleId) {
         Sale sale = saleRepository.findById(saleId)
                 .orElseThrow(() -> new ResourceNotFoundException(

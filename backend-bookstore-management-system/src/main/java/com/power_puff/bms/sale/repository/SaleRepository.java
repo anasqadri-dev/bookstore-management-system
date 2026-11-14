@@ -7,12 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
-
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface SaleRepository extends JpaRepository<Sale, Integer> {
 
+    @EntityGraph(attributePaths = {"user", "items", "items.product"})
     List<Sale> findAllByOrderBySaleDateDesc();
 
     @EntityGraph(attributePaths = "user")
