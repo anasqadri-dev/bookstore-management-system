@@ -57,10 +57,13 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          args=(-B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON -DnvdMaxRetryCount=10 -DnvdApiDelay=10000 -DnvdValidForHours=24)
+          delay=6000
+          args=(-B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON -DnvdMaxRetryCount=10)
           if [ -n "$NVD_API_KEY" ]; then
+            delay=600
             args+=("-DnvdApiKey=$NVD_API_KEY")
           fi
+          args+=("-DnvdApiDelay=$delay" "-DnvdValidForHours=24")
           bash ./mvnw "${args[@]}"
       - name: Upload vulnerability report
         if: always()
