@@ -84,13 +84,14 @@ function startBackend() {
             "backend-bookstore-management-system-0.0.1-SNAPSHOT.jar");
     const databasePath = path.join(app.getPath("userData"), "bookstore.db");
     fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-    const env = buildBackendEnvironment(process.env, databasePath, LOCAL_ORIGIN);
+    const env = buildBackendEnvironment(process.env, databasePath);
 
     backendProcess = spawn(javaExecutable(), [
         "-jar",
         jarPath,
         "--server.address=127.0.0.1",
         `--server.port=${BACKEND_PORT}`,
+        `--bms.cors.allowed-origins=${LOCAL_ORIGIN}`,
     ], {
         env,
         windowsHide: true,
