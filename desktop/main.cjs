@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, session } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, session } = require("electron");
 const { spawn } = require("node:child_process");
 const http = require("node:http");
 const path = require("node:path");
@@ -177,7 +177,35 @@ async function startApplication() {
     createMainWindow();
 }
 
+function registerBackupDialogs() {
+    ipcMain.handle("bms:choose-backup-destination", async (event) => {
+        if (!isTrustedNavigation(event.senderFrame?.url ?? "", LOCAL_ORIGIN)) {
+            throw new Error("Untrusted renderer.");
+        }
+        const result = await dialog.showSaveDialog(mainWindow, {
+            title: "Choose database backup destination",
+            defaultPath: path.join(app.getPath("documents"), "bookstore-backup.db"),
+            buttonLabel: "Save backup",
+            filters: [{ name: "SQLite database", extensions: ["db", "sqlite", "sqlite3"] }],
+        });
+        return result.canceled ? null : result.filePath;
+    });
+
+    ipcMain.handle("bms:choose-backup-file", async (event) => {
+        if (!isTrustedNavigation(event.senderFrame?.url ?? "", LOCAL_ORIGIN)) {
+            throw new Error("Untrusted renderer.");
+        }
+        const result = await dialog.showOpenDialog(mainWindow, {
+            title: "Select a bookstore database backup",
+            properties: ["openFile"],
+            filters: [{ name: "SQLite database", extensions: ["db", "sqlite", "sqlite3"] }],
+        });
+        return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+    });
+}
+
 function createMainWindow() {
+    registerBackupDialogs();
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {
