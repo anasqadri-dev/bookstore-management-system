@@ -188,7 +188,7 @@ function registerBackupDialogs() {
         }
         const result = await dialog.showSaveDialog(mainWindow, {
             title: "Choose database backup destination",
-            defaultPath: path.join(app.getPath("documents"), "bookstore-backup.db"),
+            defaultPath: path.join(app.getPath("documents"), `bookstore-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.db`),
             buttonLabel: "Save backup",
             filters: [{ name: "SQLite database", extensions: ["db", "sqlite", "sqlite3"] }],
         });
