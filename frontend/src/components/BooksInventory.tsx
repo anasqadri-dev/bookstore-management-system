@@ -14,7 +14,7 @@ type Book = {
     quantity: number;
 };
 
-export default function BooksInventory() {
+export default function BooksInventory({ canManage }: { canManage: boolean }) {
     const [books, setBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -172,7 +172,7 @@ export default function BooksInventory() {
                     <p className="mt-1 text-sm text-gray-500">Search by title or SKU and manage minimum-stock thresholds.</p>
                 </div>
 
-                <button
+                {canManage && <button
                     onClick={() => {
                         if (showForm) {
                             resetForm();
@@ -184,7 +184,7 @@ export default function BooksInventory() {
                     className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                 >
                     {showForm ? "Cancel" : "+ Add Book"}
-                </button>
+                </button>}
             </div>
 
             <div className="mb-4 flex flex-wrap gap-3">
@@ -201,7 +201,7 @@ export default function BooksInventory() {
             </div>
             {apiError && <p role="alert" className="mb-4 text-red-700">{apiError} <button type="button" className="underline" onClick={() => void loadBooks()}>Retry</button></p>}
             {/* Add / Edit Form */}
-            {showForm && (
+            {canManage && showForm && (
                 <form
                     onSubmit={saveBook}
                     className="mb-6 rounded border border-gray-200 bg-white p-6"
@@ -378,22 +378,15 @@ export default function BooksInventory() {
                                 <td className="p-4">{book.minStock}</td>
                                 <td className="p-4"><span className={book.quantity <= book.minStock ? "rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900" : "rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-900"}>{book.quantity <= book.minStock ? "Low stock" : "In stock"}</span></td>
                                 <td className="p-4">
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => editBook(book)}
-                                            className="rounded bg-blue-600 px-3 py-2 text-white hover:bg-blue-700"
-                                        >
-                                            Edit
-                                        </button>
-
-                                        <button
-                                            disabled={busy}
-                                            onClick={() => void deleteBook(book.id)}
-                                            className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
+                                    {canManage ? (
+                                        <div className="flex gap-2">
+                                            <button type="button" onClick={() => editBook(book)}
+                                                className="rounded bg-blue-600 px-3 py-2 text-white hover:bg-blue-700">Edit</button>
+                                            <button type="button" disabled={busy}
+                                                onClick={() => void deleteBook(book.id)}
+                                                className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700">Delete</button>
+                                        </div>
+                                    ) : <span className="text-xs text-gray-500">View only</span>}
                                 </td>
                             </tr>
                         ))
