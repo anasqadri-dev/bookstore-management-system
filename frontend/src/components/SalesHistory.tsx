@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { filterSavedSales, summarizeSavedSales } from "../lib/sales-history-model.mjs";
 import { apiRequest } from "../lib/api";
 
 type SaleItem = {
@@ -28,15 +29,6 @@ const money = (amount: number) =>
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
-
-function businessDate(value: string) {
-    return new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Karachi",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    }).format(new Date(value));
-}
 
 function displayDate(value: string) {
     return new Intl.DateTimeFormat("en-PK", {
@@ -77,25 +69,8 @@ export default function SalesHistory() {
         return () => { active = false; };
     }, []);
 
-    const filtered = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        return sales.filter((sale) => {
-            const itemText = sale.items
-                .map((item) => `${item.sku} ${item.title}`)
-                .join(" ");
-            const haystack = `${sale.id} ${sale.customerName ?? ""} ${sale.cashierName} ${itemText}`
-                .toLowerCase();
-            return (!term || haystack.includes(term))
-                && (!date || businessDate(sale.saleDate) === date);
-        });
-    }, [sales, search, date]);
-
-    const totalRevenueCents = filtered.reduce(
-        (sum, sale) => sum + Math.round(sale.totalAmount * 100), 0,
-    );
-    const totalItems = filtered.reduce(
-        (sum, sale) => sum + sale.items.reduce((quantity, item) => quantity + item.quantity, 0), 0,
-    );
+    const filtered = filterSavedSales(sales, search, date);
+    const summary = summarizeSavedSales(filtered);
 
     return (
         <div className="space-y-6">
@@ -109,15 +84,15 @@ export default function SalesHistory() {
             <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-lg border border-gray-200 bg-white p-6">
                     <p className="text-sm text-gray-500">Transactions</p>
-                    <p className="mt-3 text-2xl font-bold">{filtered.length}</p>
+                    <p className="mt-3 text-2xl font-bold">{summary.transactionCount}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-6">
                     <p className="text-sm text-gray-500">Revenue</p>
-                    <p className="mt-3 text-2xl font-bold">{money(totalRevenueCents / 100)}</p>
+                    <p className="mt-3 text-2xl font-bold">{money(summary.revenueCents / 100)}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-6">
                     <p className="text-sm text-gray-500">Books Sold</p>
-                    <p className="mt-3 text-2xl font-bold">{totalItems}</p>
+                    <p className="mt-3 text-2xl font-bold">{summary.bookQuantity}</p>
                 </div>
             </div>
 
