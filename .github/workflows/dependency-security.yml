@@ -82,12 +82,19 @@ jobs:
           java-version: "25"
           cache: maven
           cache-dependency-path: backend-bookstore-management-system/pom.xml
+      - name: Restore OWASP Dependency-Check database cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/dependency-check
+          key: dependency-check-${{ runner.os }}-${{ hashFiles('backend-bookstore-management-system/pom.xml') }}
+          restore-keys: |
+            dependency-check-${{ runner.os }}-
       - name: Check backend dependencies for CVSS 7+ vulnerabilities
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           delay=6000
-          args=(-B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON -DnvdMaxRetryCount=10)
+          args=(-B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON -DnvdMaxRetryCount=20 -DdataDirectory="$HOME/.cache/dependency-check")
           if [ -n "$NVD_API_KEY" ]; then
             delay=600
             args+=("-DnvdApiKey=$NVD_API_KEY")
