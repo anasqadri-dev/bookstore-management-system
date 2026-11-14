@@ -83,3 +83,12 @@ The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, 
 - **Before requesting a merge:** Run lint and build, manually exercise affected flows, and verify the PR checks. Changes to backend integrations also need end-to-end verification.
 
 For project-wide context, see the [repository README](../README.md).
+
+
+## Validation commands
+
+- `npm test` runs the Node built-in contract/model/accessibility suite.
+- `npm run test:ui` runs Vitest component and session integration tests.
+- `npm run lint` runs ESLint.
+- `npm run build` creates the normal Next.js production build.
+- `npm run build:desktop` creates the Next.js standalone output consumed by the Electron Windows package.
