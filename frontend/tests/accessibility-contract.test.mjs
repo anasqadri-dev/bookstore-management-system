@@ -67,7 +67,7 @@ test("module error recovery actions are keyboard-operable buttons", async () => 
 test("route-level error boundary exposes retry without leaking raw error messages", async () => {
     const boundary = await source("../src/app/error.tsx");
     assert.ok(boundary.includes('role="alert"'));
-    assert.ok(boundary.includes("onClick={() => reset()}"));
+    assert.ok(boundary.includes("onClick={reset}"));
     assert.ok(boundary.includes("error.digest"));
     assert.equal(boundary.includes("{error.message}"), false);
 });
