@@ -13,8 +13,9 @@ import Settings from "../components/Settings";
 import SalesHistory from "../components/SalesHistory";
 import PurchaseOrders from "../components/PurchaseOrders";
 import { apiRequest, type AuthenticatedUser } from "../lib/api";
+import BackendReadiness from "../components/BackendReadiness";
 
-export default function Home() {
+function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [activePage, setActivePage] = useState("Dashboard");
@@ -255,4 +256,9 @@ export default function Home() {
             </main>
         </div>
     );
+}
+
+
+export default function Home() {
+    return <BackendReadiness><AppContent /></BackendReadiness>;
 }
