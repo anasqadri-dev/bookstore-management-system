@@ -35,25 +35,24 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Set up Java 25
+      - name: Set up Java 25 with JDK modules
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: zulu
           java-version: "25"
+          java-package: jdk
           cache: maven
           cache-dependency-path: backend-bookstore-management-system/pom.xml
 
-      - name: Locate JDK module archive directory
-        id: jdk-modules
+      - name: Verify JDK module archives
         shell: pwsh
         run: |
-          $base = Get-ChildItem -Path $env:JAVA_HOME -Filter "java.base.jmod" -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $base) {
-            throw "The configured JDK does not contain java.base.jmod; install a full JDK distribution with jmods."
+          $modulePath = Join-Path $env:JAVA_HOME "jmods"
+          if (-not (Test-Path (Join-Path $modulePath "java.base.jmod"))) {
+            throw "Zulu JDK module archive not found at $modulePath"
           }
-          $modulePath = $base.DirectoryName
-          "module_path=$modulePath" >> $env:GITHUB_OUTPUT
-          Write-Host "Using JDK module archive directory: $modulePath"
+          "Using JDK module archive directory: $modulePath"
+          jlink --version
 
       - name: Install frontend dependencies
         run: npm ci
@@ -69,11 +68,10 @@ jobs:
 
       - name: Create bundled Java runtime
         shell: pwsh
-        env:
-          JDK_MODULE_PATH: ${{ steps.jdk-modules.outputs.module_path }}
         run: |
+          $modulePath = Join-Path $env:JAVA_HOME "jmods"
           $modules = "java.base,java.compiler,java.desktop,java.instrument,java.logging,java.management,java.naming,java.net.http,java.prefs,java.rmi,java.scripting,java.security.jgss,java.sql,java.transaction.xa,java.xml,jdk.crypto.ec,jdk.unsupported"
-          jlink --module-path "$env:JDK_MODULE_PATH" --add-modules $modules --strip-debug --no-man-pages --no-header-files --output desktop/runtime
+          jlink --module-path $modulePath --add-modules $modules --strip-debug --no-man-pages --no-header-files --output desktop/runtime
           if ($LASTEXITCODE -ne 0) { throw "jlink failed with exit code $LASTEXITCODE" }
 
       - name: Install pinned Electron packaging tools
