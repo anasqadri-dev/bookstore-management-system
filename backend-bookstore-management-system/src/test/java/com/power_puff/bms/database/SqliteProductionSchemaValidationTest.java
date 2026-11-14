@@ -21,7 +21,7 @@ class SqliteProductionSchemaValidationTest {
 
     @Test
     void baselineSchemaValidatesAgainstEveryJpaEntityAndRecordsMigrationHistory() {
-        assertEquals(11, jdbcTemplate.queryForObject("""
+        assertEquals(12, jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
                 FROM sqlite_master
                 WHERE type = 'table'
@@ -29,7 +29,7 @@ class SqliteProductionSchemaValidationTest {
                   AND name <> 'schema_migrations'
                 """, Integer.class));
 
-        assertEquals(4, jdbcTemplate.queryForObject(
+        assertEquals(5, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM schema_migrations", Integer.class));
 
         assertEquals(1, jdbcTemplate.queryForObject(
