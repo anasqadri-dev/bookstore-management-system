@@ -26,6 +26,7 @@
 # Electron build output
 **/dist/
 **/release/
+desktop/runtime/
 
 # Test coverage
 **/coverage/

@@ -8,7 +8,8 @@ export class ApiError extends Error {
     }
 }
 
-function userFacingMessage(status, serverMessage) {
+function userFacingMessage(status, serverMessage, operation) {
+    if (status === 401 && operation.includes("/api/auth/login")) return "Invalid username or password.";
     if (status === 401) return "Your session has expired or you are not signed in. Please sign in again.";
     if (status === 403) return "You do not have permission to perform this action.";
     if (status === 404) return "The requested record or resource could not be found.";
@@ -40,7 +41,7 @@ async function readEnvelope(response, operation) {
         const serverMessage = typeof envelope.message === "string" && envelope.message.trim()
             ? envelope.message
             : "";
-        throw new ApiError(userFacingMessage(response.status, serverMessage), {
+        throw new ApiError(userFacingMessage(response.status, serverMessage, operation), {
             status: response.status,
             code: envelope.code ?? null,
             details: envelope.data ?? null,

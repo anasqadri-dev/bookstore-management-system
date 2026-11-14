@@ -23,6 +23,33 @@ permissions:
   contents: read
 
 jobs:
+  detect-changes:
+    name: Detect Maven dependency manifest changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend_pom: ${{ steps.filter.outputs.backend_pom }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: filter
+        shell: bash
+        run: |
+          changed=false
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            git fetch --no-tags origin "$GITHUB_BASE_REF"
+            if git diff --name-only "FETCH_HEAD...HEAD" | grep -Fxq "backend-bookstore-management-system/pom.xml"; then
+              changed=true
+            fi
+          elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            if git diff --name-only "$GITHUB_EVENT_BEFORE" "$GITHUB_SHA" | grep -Fxq "backend-bookstore-management-system/pom.xml"; then
+              changed=true
+            fi
+          else
+            changed=true
+          fi
+          echo "backend_pom=$changed" >> "$GITHUB_OUTPUT"
+
   npm-audit:
     name: npm high/critical dependency audit
     runs-on: ubuntu-latest
@@ -41,6 +68,8 @@ jobs:
 
   maven-audit:
     name: Maven dependency vulnerability audit
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_pom == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -54,7 +83,17 @@ jobs:
           cache: maven
           cache-dependency-path: backend-bookstore-management-system/pom.xml
       - name: Check backend dependencies for CVSS 7+ vulnerabilities
-        run: bash ./mvnw -B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          delay=6000
+          args=(-B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON -DnvdMaxRetryCount=10)
+          if [ -n "$NVD_API_KEY" ]; then
+            delay=600
+            args+=("-DnvdApiKey=$NVD_API_KEY")
+          fi
+          args+=("-DnvdApiDelay=$delay" "-DnvdValidForHours=24")
+          bash ./mvnw "${args[@]}"
       - name: Upload vulnerability report
         if: always()
         uses: actions/upload-artifact@v4

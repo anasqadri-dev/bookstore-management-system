@@ -8,6 +8,7 @@ import org.springframework.core.env.MapPropertySource;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,29 +19,35 @@ class DatabaseLocationInitializerTest {
     Path temporaryDirectory;
 
     @Test
-    void resolvesRelativeDatabasePathAndCreatesParentBeforeDatasourceStartup() {
-        Path requestedPath = temporaryDirectory
-                .resolve("user-data")
-                .resolve("BookstoreManagementSystem")
-                .resolve("bookstore.db");
+    void resolvesRelativeDatabasePathAndCreatesParentBeforeDatasourceStartup() throws Exception {
         Path workingDirectory = Path.of("").toAbsolutePath().normalize();
-        Path relativePath = workingDirectory.relativize(requestedPath.toAbsolutePath().normalize());
+        Path relativePath = Path.of(
+                "target",
+                "database-location-test-" + UUID.randomUUID(),
+                "BookstoreManagementSystem",
+                "bookstore.db");
+        Path resolvedPath = workingDirectory.resolve(relativePath).normalize();
 
-        try (GenericApplicationContext context = new GenericApplicationContext()) {
-            context.getEnvironment().getPropertySources().addFirst(
-                    new MapPropertySource("testProperties", Map.of(
-                            "spring.datasource.url", "jdbc:sqlite:" + relativePath)));
+        try {
+            try (GenericApplicationContext context = new GenericApplicationContext()) {
+                context.getEnvironment().getPropertySources().addFirst(
+                        new MapPropertySource("testProperties", Map.of(
+                                "spring.datasource.url", "jdbc:sqlite:" + relativePath)));
 
-            new DatabaseLocationInitializer().initialize(context);
+                new DatabaseLocationInitializer().initialize(context);
 
-            Path resolvedPath = requestedPath.toAbsolutePath().normalize();
-            assertEquals(
-                    "jdbc:sqlite:" + resolvedPath,
-                    context.getEnvironment().getProperty("spring.datasource.url"));
-            assertEquals(
-                    resolvedPath.toString(),
-                    context.getEnvironment().getProperty("bms.database.resolved-path"));
-            assertTrue(Files.isDirectory(resolvedPath.getParent()));
+                assertEquals(
+                        "jdbc:sqlite:" + resolvedPath,
+                        context.getEnvironment().getProperty("spring.datasource.url"));
+                assertEquals(
+                        resolvedPath.toString(),
+                        context.getEnvironment().getProperty("bms.database.resolved-path"));
+                assertTrue(Files.isDirectory(resolvedPath.getParent()));
+            }
+        } finally {
+            Files.deleteIfExists(resolvedPath);
+            Files.deleteIfExists(resolvedPath.getParent());
+            Files.deleteIfExists(resolvedPath.getParent().getParent());
         }
     }
 

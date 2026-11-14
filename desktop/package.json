@@ -1,0 +1,59 @@
+{
+  "name": "bookstore-management-system-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Windows desktop shell for the Bookstore Management System",
+  "main": "main.cjs",
+  "scripts": {
+    "test": "node --test",
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.qadribookstore.managementsystem",
+    "productName": "Bookstore Management System",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "runtime-core.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/.next/standalone",
+        "to": "frontend"
+      },
+      {
+        "from": "../backend-bookstore-management-system/target/backend-bookstore-management-system-0.0.1-SNAPSHOT.jar",
+        "to": "backend/backend-bookstore-management-system-0.0.1-SNAPSHOT.jar"
+      },
+      {
+        "from": "runtime",
+        "to": "jre"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

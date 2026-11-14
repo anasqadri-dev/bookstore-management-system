@@ -63,3 +63,19 @@ test("module error recovery actions are keyboard-operable buttons", async () => 
     assert.ok(boundary.includes("onClick={this.reset}"));
     assert.ok(boundary.includes("onClick={this.props.onReturnToDashboard}"));
 });
+
+test("production backend binds only to loopback and has explicit session-cookie policy", async () => {
+    const configuration = await source("../../backend-bookstore-management-system/src/main/resources/application.yaml");
+    assert.match(configuration, /^server:\n[\s\S]*?address: 127\.0\.0\.1/m);
+    assert.match(configuration, /timeout: \$\{BMS_SESSION_TIMEOUT:30m\}/);
+    assert.match(configuration, /http-only: true/);
+    assert.match(configuration, /same-site: lax/);
+    assert.match(configuration, /secure: false/);
+});
+
+test("CORS defaults remain restricted to local frontend origins with credentials", async () => {
+    const security = await source("../../backend-bookstore-management-system/src/main/java/com/power_puff/bms/security/SecurityConfiguration.java");
+    assert.ok(security.includes("http://localhost:3000,http://127.0.0.1:3000"));
+    assert.ok(security.includes("configuration.setAllowCredentials(true)"));
+    assert.ok(security.includes('source.registerCorsConfiguration("/api/**", configuration)'));
+});

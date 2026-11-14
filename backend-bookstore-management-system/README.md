@@ -116,3 +116,10 @@ All schema changes after the baseline must be implemented as a `VersionedSqliteM
 For SQLite table rebuilds, the runner disables foreign-key enforcement only on its dedicated migration connection before beginning the migration transaction. It restores foreign-key enforcement after every migration and runs `PRAGMA foreign_key_check` before application startup completes. Business connections continue to use the normal foreign-key setting.
 
 There is no automatic down-migration for table rebuilds. Before distributing an application release that includes a schema migration, take a verified SQLite backup. Recovery from an unsuccessful destructive change uses the verified pre-upgrade backup and the documented restore procedure. A migration failure rolls back its own transaction and prevents the backend from starting against a partially applied schema.
+
+
+## Validation commands
+
+Run the backend test suite with `./mvnw test` (Windows PowerShell: `.\mvnw.cmd test`). Build the packaged backend JAR with `./mvnw -B clean package` (Windows: `.\mvnw.cmd -B clean package`).
+
+The Electron desktop runtime starts this Spring Boot JAR on loopback and waits for `GET /api/health` to report both the backend and SQLite database as ready before opening the renderer.

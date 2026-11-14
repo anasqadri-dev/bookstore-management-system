@@ -33,6 +33,20 @@ export default function SalesPOS() {
     const [receiptError, setReceiptError] = useState("");
     const [savedSaleId, setSavedSaleId] = useState<number | null>(null);
     const [paperWidth, setPaperWidth] = useState<"58" | "80" | "standard">("80");
+    const [printError, setPrintError] = useState("");
+
+    async function printCurrentReceipt() {
+        setPrintError("");
+        try {
+            if (window.bmsDesktop?.isDesktop) {
+                await window.bmsDesktop.printReceipt();
+            } else {
+                window.print();
+            }
+        } catch (cause) {
+            setPrintError(cause instanceof Error ? cause.message : "Unable to open the printer dialog.");
+        }
+    }
 
     async function loadSavedReceipt(saleId: number) {
         setReceiptLoading(true);
@@ -223,12 +237,13 @@ export default function SalesPOS() {
                             <option value="80">80 mm thermal</option>
                             <option value="standard">A4 / PDF</option>
                         </select>
-                        <button type="button" onClick={() => window.print()}
+                        <button type="button" onClick={() => void printCurrentReceipt()}
                             className="rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
                             Print receipt
                         </button>
                     </div>
                 </div>
+                {printError && <p role="alert" className="print:hidden mb-3 rounded bg-red-50 p-3 text-sm text-red-800">{printError}</p>}
                 <div className="receipt-print mx-auto bg-white text-black" data-paper-width={paperWidth}>
                     <header className="receipt-print-center">
                         <h1 className="receipt-store-name">Book Store</h1>

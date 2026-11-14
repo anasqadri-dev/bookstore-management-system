@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   frontend-checks:
-    name: Next.js lint and production build (Node 22)
+    name: Next.js lint, tests and production build (Node 22)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,8 +36,11 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Run frontend tests
+      - name: Run frontend unit and contract tests
         run: npm test
+
+      - name: Run React component and session integration tests
+        run: npm run test:ui
 
       - name: Run ESLint
         run: npm run lint

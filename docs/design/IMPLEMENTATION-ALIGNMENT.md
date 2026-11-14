@@ -1,59 +1,85 @@
 # Implementation Alignment Supplement
 
-**Status:** implementation snapshot for the current `develop` branch. This document supplements, but does not replace, the approved SRS or the SDS PDF.
+**Status:** implementation snapshot for the integration release represented by PR #369 and the current `develop` history. This document supplements, but does not replace, the approved SRS or SDS PDF.
 
 ## 1. Current navigation and screen responsibilities
 
 | Navigation item | Frontend component | Access | Current responsibility / integration |
 | --- | --- | --- | --- |
 | Dashboard | `DashboardOverview.tsx` | Admin, Staff | Reads live summary and recent sales from `GET /api/dashboard`; includes loading, unavailable, empty, and refresh states |
-| Books Inventory | `BooksInventory.tsx` | Admin, Staff (Staff is read-only) | Lists/searches products, displays SKU and minimum stock, and provides Admin-only create/update/delete and low-stock filtering |
-| Sales / POS | `SalesPOS.tsx` | Admin, Staff | Loads live products, submits a sale using product IDs and quantities, and retrieves the persisted receipt |
+| Books Inventory | `BooksInventory.tsx` | Admin, Staff (Staff read-only) | Lists/searches products, displays SKU and minimum stock, and provides Admin-only create/update/delete and low-stock filtering |
+| Sales / POS | `SalesPOS.tsx` | Admin, Staff | Loads live products, submits sales using product IDs and quantities, then retrieves the persisted receipt |
 | Suppliers | `Suppliers.tsx` | Admin | Lists and creates persisted supplier records through the supplier API |
-| Sales History | `SalesHistory.tsx` | Admin, Staff | Displays saved cash sales and multi-item receipt details from `GET /api/sales`; search/date filtering is currently client-side over the returned list |
-| Purchase Orders | `PurchaseOrders.tsx` | Admin | Separate navigation view for purchasing: create/list purchase orders and receive eligible `ORDERED` orders |
+| Sales History | `SalesHistory.tsx` | Admin, Staff | Displays saved cash sales and historical receipt details from `GET /api/sales`; receipt lookup uses `GET /api/sales/{saleId}/receipt` |
+| Purchase Orders | `PurchaseOrders.tsx` | Admin | Separate purchasing view: create/list purchase orders and receive eligible `ORDERED` orders |
 | School Orders | `SchoolOrders.tsx` | Admin | Registers schools, creates/lists school orders, updates supported statuses, and retrieves saved quotations |
-| Reports | `Reports.tsx` | Admin | Loads backend sales/inventory reports, validates date ranges, and supports report printing |
-| Settings | `Settings.tsx` | Admin | Manages Staff accounts using documented user endpoints; unsupported store-profile settings are explicitly not presented as working controls |
+| Reports | `Reports.tsx` | Admin | Loads backend sales/inventory reports, validates date ranges, filters results, and supports report printing |
+| Settings | `Settings.tsx` | Admin | Manages Staff accounts; desktop builds also expose guarded database backup/restore file selection and confirmation |
 
 The role policy is centralized in `frontend/src/lib/permissions.mjs`. Hiding a screen or button is only a usability measure: Spring Security backend authorization remains the security boundary.
 
-## 2. Scope notes requiring project-owner confirmation
+## 2. Scope and traceability notes
 
-- **Sales History:** this is a distinct implemented screen, but it is not separately listed in the current SRS screen hierarchy. Treat it as an implementation extension pending formal approval/change-record traceability. Do not silently amend the SRS.
-- **Purchase Orders:** this is a separate navigation view for the purchasing workflow. The SDS currently groups purchasing/goods-received responsibilities under Suppliers. The screen split is a presentation decision; confirm with the project owner whether the SDS should describe it as a separate screen or as a sub-screen of Suppliers.
-- **Payment scope:** POS and Sales History remain cash-only. No Card or Online payment options are introduced.
+- **Sales History:** a distinct implemented screen and API-backed capability. It is an implementation extension beyond the original SRS screen hierarchy; formal approval/change-record traceability is still required. Do not silently amend the SRS.
+- **Purchase Orders:** a separate navigation view for purchasing and goods receipt. The original SDS groups purchasing under Suppliers. This supplement records the delivered separation; the SDS must explicitly document it as a screen or sub-screen after project-owner scope confirmation.
+- **Payment scope:** POS and Sales History remain cash-only. No card or online payment flow is introduced.
+- **External actors:** School, Supplier, and Walk-in Customer remain outside the BMS authentication boundary; they do not receive application accounts.
 
-## 3. Implemented architecture versus planned desktop shell
+## 3. Delivered application architecture
 
 ```mermaid
 flowchart LR
-    UI[Next.js / React frontend]
-    API[Shared API client
-credentials + CSRF + envelope handling]
-    REST[Spring Boot REST API]
-    SVC[Service layer]
-    REPO[Repository layer]
-    DB[(SQLite database)]
-    UI --> API --> REST --> SVC --> REPO --> DB
+    subgraph Desktop["Electron desktop main process"]
+        MAIN["Main process"]
+        PRELOAD["Isolated preload bridge"]
+        FRONT["Managed Next.js standalone server"]
+        BACK["Managed Spring Boot process"]
+    end
+    UI["React renderer"]
+    API["Shared API client"]
+    SVC["Spring Boot REST controllers and services"]
+    REPO["Repository layer"]
+    DB[("SQLite in per-user application data")]
+    MAIN --> BACK
+    MAIN --> FRONT
+    MAIN --> UI
+    PRELOAD --> UI
+    UI --> API --> SVC --> REPO --> DB
 ```
 
-The backend follows the documented Controller → Service → Repository → Entity/Database separation. The frontend currently runs as a Next.js web application and talks to the local loopback Spring Boot API.
+The Electron main process starts the Spring Boot backend first and waits for `/api/health` to report both backend and database readiness. It then starts the Next.js standalone server and waits for local HTTP readiness before creating the BrowserWindow.
 
-**Electron is planned, not implemented.** There is no checked-in Electron main process, preload bridge, managed backend child-process lifecycle, installer configuration, or reproducible Windows installer workflow in the current repository. The desktop runtime must not be represented as a delivered component until issue #279 is completed and verified.
+The renderer uses context isolation, sandboxing, disabled Node integration, restricted navigation, and a minimal preload bridge. Backend and frontend services bind to loopback. SQLite is stored in the per-user application-data directory, outside the installer directory, so upgrades do not replace the database. The main process owns child-process shutdown and escalates if a service does not exit normally.
 
-## 4. Repository structure snapshot
+The backend retains the Controller → Service → Repository → Entity/Database separation. The shared frontend API client handles credentials, CSRF, response envelopes, and structured HTTP/network errors.
 
-- `frontend/`: Next.js App Router UI, shared API client, module components, Node-based unit/regression tests.
-- `backend-bookstore-management-system/`: Spring Boot REST API, SQLite persistence, Maven wrapper, backend tests, API and operational documentation.
+## 4. Desktop operations
+
+- **Backup/restore:** native save/open dialogs are registered in the Electron main process and accept requests only from the trusted local renderer. Restore requires destructive-operation confirmation and returns the UI to sign-in.
+- **Receipt printing:** saved receipts support the system print dialog and 58 mm, 80 mm, and A4/PDF layouts. Physical printer selection, paper calibration, and output quality still require target-printer acceptance.
+- **Shutdown:** both managed child processes are stopped during application exit; unexpected child termination is surfaced to the user.
+- **Offline runtime:** the packaged application uses local services and a local SQLite database. A clean Windows machine must still complete the offline acceptance checklist with external connectivity disabled.
+
+## 5. Repository structure snapshot
+
+- `frontend/`: Next.js App Router UI, shared API client, module components, Node contract tests, and Vitest/React Testing Library component/session tests.
+- `backend-bookstore-management-system/`: Spring Boot REST API, SQLite persistence, Maven wrapper, backend tests, and API/operational documentation.
+- `desktop/`: Electron main process, preload bridge, runtime helpers/tests, packaging configuration, and Windows acceptance checklist.
 - `docs/requirements/`: approved SRS PDF.
 - `docs/design/`: SDS PDF and this implementation-alignment supplement.
-- `.github/workflows/`: CI workflows.
-- `desktop/`: not present; planned work under issue #279.
+- `.github/workflows/`: frontend, backend, Windows desktop, and dependency-security workflows.
 
-## 5. Validation and release caveats
+## 6. Automated validation and remaining acceptance
 
-- Frontend automated tests run with `cd frontend; npm test`; they currently emphasize deterministic API/model/accessibility contracts. They are not yet comprehensive React component tests for every workflow.
-- Frontend CI runs tests, ESLint, and a production build.
-- Actual Windows 10/11 installer, offline-machine, printer, scaling, and second-contributor acceptance checks remain external/manual tasks.
-- Reconcile the SDS PDF diagrams and screen list with this snapshot before treating the SDS as release-current. This supplement records implementation facts but does not claim formal approval of scope additions.
+Automated CI now covers:
+- Frontend Node contract/model/accessibility tests and React component/session tests, followed by ESLint and production build.
+- Backend Maven test suite, including restore fidelity checks comparing saved row values across all eleven business tables.
+- Windows standalone frontend build, backend package, bundled Java runtime, Electron runtime tests, and NSIS installer artifact.
+- npm high/critical dependency audit; Maven dependency scanning is triggered by Maven dependency-manifest changes and on the weekly schedule.
+
+The following are not claimed as complete by CI alone:
+- Clean Windows 10/11 offline workflow acceptance.
+- Target-window display scaling and low-spec performance measurements.
+- Physical printer selection, paper sizing, and output quality.
+- First-time-clerk usability session with a real clerk.
+- Canonical SRS/SDS PDF diagram and screen-map updates. This supplement does not replace those approved documents or approve scope changes.
