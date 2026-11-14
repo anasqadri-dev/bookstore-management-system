@@ -55,13 +55,6 @@ const contracts = [
     frontendPaths: ["/api/reports/sales", "/api/reports/inventory"],
   },
   {
-    name: "Backup and restore",
-    controller: "../../backend-bookstore-management-system/src/main/java/com/power_puff/bms/backup/controller/DatabaseBackupController.java",
-    frontend: ["../src/components/Settings.tsx"],
-    backend: ["@RequestMapping(\"/api/backup\")", "@PostMapping", "@PostMapping(\"/restore\")"],
-    frontendPaths: ["/api/backup", "/api/backup/restore"],
-  },
-  {
     name: "Staff settings",
     controller: "../../backend-bookstore-management-system/src/main/java/com/power_puff/bms/user/controller/UserController.java",
     frontend: ["../src/components/Settings.tsx"],
