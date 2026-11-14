@@ -150,7 +150,7 @@ class UserSessionRevocationIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":"%s"}
-                                """.formatted(backup.filePath())))
+                                """.formatted(jsonEscape(backup.filePath()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
@@ -174,7 +174,7 @@ class UserSessionRevocationIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":"%s"}
-                                """.formatted(invalidBackup)))
+                                """.formatted(jsonEscape(invalidBackup.toString()))))
                 .andExpect(status().is4xxClientError());
 
         mockMvc.perform(get("/api/auth/me").session(adminSession))
@@ -216,4 +216,8 @@ class UserSessionRevocationIntegrationTest {
                 .andReturn();
         return JsonPath.read(result.getResponse().getContentAsString(), "$.data.token");
     }
+    private String jsonEscape(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
 }
