@@ -8,8 +8,8 @@ afterEach(() => {
 async function loadApi(fetchImpl: typeof fetch) {
   vi.resetModules();
   vi.stubGlobal("fetch", fetchImpl);
-  const module = await import("./api");
-  return module.apiRequest;
+  const apiModule = await import("./api");
+  return apiModule.apiRequest;
 }
 
 const envelope = (status: number, data: unknown, message = "OK") => ({
