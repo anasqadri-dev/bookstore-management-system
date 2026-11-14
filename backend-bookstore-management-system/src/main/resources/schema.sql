@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
 
 CREATE TABLE IF NOT EXISTS activity_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id INTEGER REFERENCES users(id),
     action VARCHAR(50) NOT NULL,
     details VARCHAR(1000),
     created_at TIMESTAMP NOT NULL

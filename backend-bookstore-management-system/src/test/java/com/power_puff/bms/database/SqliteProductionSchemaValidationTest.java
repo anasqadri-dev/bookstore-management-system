@@ -29,7 +29,7 @@ class SqliteProductionSchemaValidationTest {
                   AND name <> 'schema_migrations'
                 """, Integer.class));
 
-        assertEquals(3, jdbcTemplate.queryForObject(
+        assertEquals(4, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM schema_migrations", Integer.class));
 
         assertEquals(1, jdbcTemplate.queryForObject(
