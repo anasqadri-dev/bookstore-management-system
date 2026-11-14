@@ -8,6 +8,7 @@ import com.power_puff.bms.user.dto.LoginResponse;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.mapper.UserMapper;
 import com.power_puff.bms.user.service.UserAccountService;
+import com.power_puff.bms.security.ActiveSessionRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -31,15 +32,18 @@ public class AuthController {
     private final SecurityContextRepository securityContextRepository;
     private final UserAccountService userAccountService;
     private final ActivityLogService activityLogService;
+    private final ActiveSessionRegistry activeSessionRegistry;
 
     public AuthController(AuthenticationManager authenticationManager,
                           SecurityContextRepository securityContextRepository,
                           UserAccountService userAccountService,
-                          ActivityLogService activityLogService) {
+                          ActivityLogService activityLogService,
+                          ActiveSessionRegistry activeSessionRegistry) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.userAccountService = userAccountService;
         this.activityLogService = activityLogService;
+        this.activeSessionRegistry = activeSessionRegistry;
     }
 
     @GetMapping("/csrf")
@@ -68,6 +72,7 @@ public class AuthController {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, servletRequest, servletResponse);
+        activeSessionRegistry.register(servletRequest.getSession(true));
 
         User user = findAuthenticatedUser(authentication);
         activityLogService.record(user, "LOGIN", "Successful login");
@@ -88,6 +93,7 @@ public class AuthController {
             HttpServletResponse servletResponse) {
         HttpSession session = servletRequest.getSession(false);
         if (session != null) {
+            activeSessionRegistry.unregister(session);
             session.invalidate();
         }
 
