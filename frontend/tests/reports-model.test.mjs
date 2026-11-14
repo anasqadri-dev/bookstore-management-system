@@ -15,6 +15,7 @@ test("requires both report dates", () => {
 test("rejects reversed and malformed report dates", () => {
     assert.match(validateSalesDateRange("2026-11-15", "2026-11-14"), /after/);
     assert.match(validateSalesDateRange("14-11-2026", "2026-11-15"), /YYYY-MM-DD/);
+    assert.match(validateSalesDateRange("2026-02-31", "2026-03-01"), /calendar dates/);
 });
 
 test("builds an encoded backend sales report path", () => {
