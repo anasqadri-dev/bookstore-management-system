@@ -54,7 +54,7 @@ jobs:
           cache: maven
           cache-dependency-path: backend-bookstore-management-system/pom.xml
       - name: Check backend dependencies for CVSS 7+ vulnerabilities
-        run: ./mvnw -B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON
+        run: bash ./mvnw -B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON
       - name: Upload vulnerability report
         if: always()
         uses: actions/upload-artifact@v4
