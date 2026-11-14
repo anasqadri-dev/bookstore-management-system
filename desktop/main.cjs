@@ -98,7 +98,18 @@ function startBackend() {
     });
 
     let alive = true;
-    backendProcess.once("exit", () => { alive = false; });
+    backendProcess.once("exit", () => {
+        alive = false;
+        if (!allowQuit && mainWindow) {
+            void dialog.showMessageBox(mainWindow, {
+                type: "error",
+                title: "Bookstore server stopped",
+                message: "The local database service stopped unexpectedly.",
+                detail: "The application will close safely. Your database remains in the user-data directory.",
+                buttons: ["Exit"],
+            }).then(() => app.quit());
+        }
+    });
     backendProcess.once("error", () => { alive = false; });
 
     return waitForService({
@@ -133,7 +144,18 @@ function startFrontend() {
     });
 
     let alive = true;
-    frontendProcess.once("exit", () => { alive = false; });
+    frontendProcess.once("exit", () => {
+        alive = false;
+        if (!allowQuit && mainWindow) {
+            void dialog.showMessageBox(mainWindow, {
+                type: "error",
+                title: "Bookstore interface stopped",
+                message: "The local dashboard service stopped unexpectedly.",
+                detail: "The application will close safely. Your saved records are not modified by this shutdown.",
+                buttons: ["Exit"],
+            }).then(() => app.quit());
+        }
+    });
     frontendProcess.once("error", () => { alive = false; });
 
     return waitForService({
@@ -243,4 +265,11 @@ app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0 && backendProcess && frontendProcess) {
         createMainWindow();
     }
+});
+
+
+process.on("exit", () => {
+    // Last-resort synchronous cleanup if the main process exits unexpectedly.
+    try { frontendProcess?.kill(); } catch {}
+    try { backendProcess?.kill(); } catch {}
 });
