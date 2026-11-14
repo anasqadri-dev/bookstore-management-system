@@ -14,7 +14,7 @@
 | Purchase Orders | `PurchaseOrders.tsx` | Admin | Separate navigation view for purchasing: create/list purchase orders and receive eligible `ORDERED` orders |
 | School Orders | `SchoolOrders.tsx` | Admin | Registers schools, creates/lists school orders, updates supported statuses, and retrieves saved quotations |
 | Reports | `Reports.tsx` | Admin | Loads backend sales/inventory reports, validates date ranges, and supports report printing |
-| Settings | `Settings.tsx` | Admin | Manages Staff accounts using documented user endpoints; unsupported store-profile settings are explicitly not presented as working controls |
+| Settings | `Settings.tsx` | Admin | Manages Staff accounts and exposes documented database backup/restore operations through native desktop file dialogs; unsupported store-profile settings are explicitly not presented as working controls |
 
 The role policy is centralized in `frontend/src/lib/permissions.mjs`. Hiding a screen or button is only a usability measure: Spring Security backend authorization remains the security boundary.
 
