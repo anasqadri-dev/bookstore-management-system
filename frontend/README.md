@@ -25,16 +25,16 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. The backend API listens on http://localhost:8080 by default. On a fresh database, the dashboard automatically displays the first-run Admin setup form. After the owner creates the account, the normal sign-in screen appears. See [the backend first-run setup instructions](../backend-bookstore-management-system/README.md#initial-admin-account-provisioning).
+Open http://127.0.0.1:3000. The backend API listens on http://127.0.0.1:8080 by default. On a fresh database, the dashboard automatically displays the first-run Admin setup form. After the owner creates the account, the normal sign-in screen appears. See [the backend first-run setup instructions](../backend-bookstore-management-system/README.md#initial-admin-account-provisioning).
 
 If the backend is not running or no account has been provisioned, login and session restoration will not work. Do not hard-code credentials or bypass the session check to test authenticated screens.
 
 ## API configuration and sessions
 
-The API client is in [`src/lib/api.ts`](src/lib/api.ts). By default it calls `http://localhost:8080`. To override the address, create a local `frontend/.env.local` file (do not commit it):
+The API client is in [`src/lib/api.ts`](src/lib/api.ts). By default it calls `http://127.0.0.1:8080`. Open the frontend at `http://127.0.0.1:3000` too; using the same loopback host keeps the session cookie same-site. To override the address, create a local `frontend/.env.local` file (do not commit it):
 
 ```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8080
 ```
 
 Restart the Next.js development server after changing the environment variable. Because this variable has the `NEXT_PUBLIC_` prefix, its value is exposed to the browser; **never put secrets in it**.
