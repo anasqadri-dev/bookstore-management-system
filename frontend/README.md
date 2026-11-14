@@ -52,12 +52,13 @@ Run these from `frontend/`:
 | `npm ci` | Install exactly the dependencies in `package-lock.json` |
 | `npm run dev` | Start development server on port 3000 |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run deterministic frontend tests using Node.js built-in test runner |
 | `npm run build` | Build the production application (includes Next.js checks) |
 | `npm run start` | Serve an existing production build |
 
-**Automated frontend tests:** No `npm test` script is currently defined. Do not treat a successful lint/build as proof that all user workflows or accessibility behaviors pass. Add a test command and document it when the frontend test infrastructure is introduced.
+**Automated frontend tests:** `npm test` runs the deterministic Node test suite in non-interactive mode. Current tests cover API envelope/session/CSRF behavior, role-policy and account-form helpers, navigation state, and backend health-response validation. This is a growing regression suite, not a substitute for the remaining React component-level workflow tests or manual Windows usability/accessibility checks.
 
-The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, `npm run lint`, and `npm run build` on Node 22 for frontend-related PRs.
+The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` on Node 22 for frontend-related PRs.
 
 ## Project layout
 

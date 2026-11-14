@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { apiRequest } from "../lib/api";
+import { isBackendReady } from "../lib/backend-health.mjs";
 
 type ConnectionState = "connecting" | "ready" | "unavailable";
 
@@ -19,9 +20,9 @@ export default function BackendReadiness({ children }: { children: ReactNode }) 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
 
-        apiRequest<unknown>("/api/health", { signal: controller.signal, cache: "no-store" })
-            .then(() => {
-                if (active) setStatus("ready");
+        apiRequest<{ status?: string; database?: string }>("/api/health", { signal: controller.signal, cache: "no-store" })
+            .then((health) => {
+                if (active) setStatus(isBackendReady(health) ? "ready" : "unavailable");
             })
             .catch(() => {
                 if (active) setStatus("unavailable");
