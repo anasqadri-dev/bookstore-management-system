@@ -8,10 +8,10 @@ type CartItem = { productId: number; title: string; price: number; quantity: num
 type SaleReceipt = {
     id: number;
     saleDate: string;
-    customerName: string;
+    customerName: string | null;
     totalAmount: number;
     cashierName: string;
-    items: { productId: number; title: string; quantity: number; unitPrice: number; subtotal: number }[];
+    items: { productId: number; sku: string; title: string; quantity: number; unitPrice: number; subtotal: number }[];
 };
 const money = (amount: number) => `Rs. ${amount.toLocaleString("en-PK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -28,6 +28,35 @@ export default function SalesPOS() {
     const pending = useRef(false);
     const [error, setError] = useState("");
     const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
+    const [receiptLookupId, setReceiptLookupId] = useState("");
+    const [receiptLoading, setReceiptLoading] = useState(false);
+    const [receiptError, setReceiptError] = useState("");
+    const [savedSaleId, setSavedSaleId] = useState<number | null>(null);
+
+    async function loadSavedReceipt(saleId: number) {
+        setReceiptLoading(true);
+        setReceiptError("");
+        setReceipt(null);
+        try {
+            const savedReceipt = await apiRequest<SaleReceipt>(
+                `/api/sales/${saleId}/receipt`,
+                { cache: "no-store" },
+            );
+            if (!savedReceipt || savedReceipt.id !== saleId
+                || !Number.isFinite(savedReceipt.totalAmount)
+                || !Array.isArray(savedReceipt.items)) {
+                throw new Error("The server returned an invalid saved receipt.");
+            }
+            setReceipt(savedReceipt);
+            setSavedSaleId(saleId);
+        } catch (reason) {
+            setReceiptError(reason instanceof Error
+                ? reason.message
+                : `Unable to retrieve receipt #${saleId}.`);
+        } finally {
+            setReceiptLoading(false);
+        }
+    }
 
     useEffect(() => {
         let active = true;
@@ -70,23 +99,29 @@ export default function SalesPOS() {
         setError("");
         setReceipt(null);
         try {
-            const saved = await apiRequest<SaleReceipt>("/api/sales", {
+            const saved = await apiRequest<{ id: number }>("/api/sales", {
                 method: "POST",
                 body: JSON.stringify({
                     customerName: customer.trim() || "Walk-in Customer",
                     items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
                 }),
             });
-            if (!saved || !Number.isFinite(saved.totalAmount) || !Array.isArray(saved.items)) {
-                throw new Error("Sale response could not be verified. Check saved receipts before retrying.");
+            if (!saved || !Number.isSafeInteger(saved.id) || saved.id < 1) {
+                throw new Error("The server did not confirm a valid sale ID. Check Sales History before retrying.");
             }
-            setReceipt(saved);
+
+            // The sale is committed now. Clear the cart before loading its receipt so a
+            // receipt-read failure can never make the user accidentally submit the sale again.
+            const committedSaleId = saved.id;
             setCart([]);
             setCustomer("");
             setSelectedBook("");
             setQuantity(1);
+            setReceiptLookupId(String(committedSaleId));
+            setSavedSaleId(committedSaleId);
             setLoading(true);
             setReload((value) => value + 1);
+            await loadSavedReceipt(committedSaleId);
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : "Checkout failed. Your cart was retained.");
         } finally {
@@ -145,16 +180,56 @@ export default function SalesPOS() {
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                     <h4 className="text-xl font-bold">Estimated total: {money(estimatedTotal)}</h4>
                     <div className="flex gap-3">
-                        <button type="button" disabled={saving} onClick={() => { setCart([]); setCustomer(""); setReceipt(null); setError(""); }} className="rounded border px-4 py-2 disabled:opacity-50">Clear Cart</button>
+                        <button type="button" disabled={saving} onClick={() => { setCart([]); setCustomer(""); setReceipt(null); setReceiptError(""); setError(""); }} className="rounded border px-4 py-2 disabled:opacity-50">Clear Cart</button>
                         <button type="button" disabled={saving || cart.length === 0} onClick={() => void confirmSale()} className="rounded bg-blue-600 px-5 py-2 text-white disabled:opacity-50">{saving ? "Saving sale..." : "Confirm Cash Sale"}</button>
                     </div>
                 </div>
             </section>
-            {receipt && <section role="status" className="rounded border border-green-200 bg-white p-6">
-                <h3 className="text-xl font-bold text-green-800">Sale #{receipt.id} saved successfully</h3>
-                <p>Customer: {receipt.customerName}</p><p>Cashier: {receipt.cashierName}</p>
-                <p className="font-bold">Confirmed total: {money(receipt.totalAmount)}</p>
-                <p className="mt-2 text-sm">Receipt details are stored on the server. Receipt retrieval and printing are tracked separately.</p>
+            <section className="rounded border border-gray-200 bg-white p-6">
+                <h3 className="text-lg font-semibold">Retrieve a saved receipt</h3>
+                <form className="mt-3 flex flex-wrap gap-3" onSubmit={(event) => {
+                    event.preventDefault();
+                    const id = Number(receiptLookupId);
+                    if (Number.isSafeInteger(id) && id > 0) void loadSavedReceipt(id);
+                    else setReceiptError("Enter a valid saved sale ID.");
+                }}>
+                    <label htmlFor="receipt-sale-id" className="sr-only">Saved sale ID</label>
+                    <input id="receipt-sale-id" inputMode="numeric" pattern="[0-9]*"
+                        value={receiptLookupId} onChange={(event) => setReceiptLookupId(event.target.value)}
+                        placeholder="Enter sale ID" className="min-w-0 flex-1 rounded border border-gray-300 px-3 py-2" />
+                    <button type="submit" disabled={receiptLoading || !receiptLookupId.trim()}
+                        className="rounded bg-slate-800 px-4 py-2 text-white disabled:opacity-50">
+                        {receiptLoading ? "Loading receipt..." : "Load receipt"}
+                    </button>
+                </form>
+                {receiptError && <p role="alert" className="mt-3 text-sm text-red-700">{receiptError}</p>}
+                {savedSaleId !== null && !receipt && !receiptError && (
+                    <p role="status" className="mt-3 text-sm text-green-800">Sale #{savedSaleId} was saved. Its receipt is not currently loaded.</p>
+                )}
+            </section>
+            {receipt && <section className="rounded border border-green-200 bg-white p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 className="text-xl font-bold text-green-800">Saved receipt #{receipt.id}</h3>
+                        <p className="mt-1 text-sm text-gray-600">{new Date(receipt.saleDate).toLocaleString("en-PK")}</p>
+                    </div>
+                    <p className="text-lg font-bold">{money(receipt.totalAmount)}</p>
+                </div>
+                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                    <p>Customer: {receipt.customerName || "Walk-in Customer"}</p>
+                    <p>Cashier: {receipt.cashierName}</p>
+                </div>
+                <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-100"><tr><th className="p-3">Book</th><th className="p-3">SKU</th><th className="p-3">Qty</th><th className="p-3">Unit price</th><th className="p-3">Subtotal</th></tr></thead>
+                        <tbody>{receipt.items.map((item) => (
+                            <tr key={item.productId} className="border-t">
+                                <td className="p-3">{item.title}</td><td className="p-3 font-mono text-xs">{item.sku}</td>
+                                <td className="p-3">{item.quantity}</td><td className="p-3">{money(item.unitPrice)}</td><td className="p-3">{money(item.subtotal)}</td>
+                            </tr>
+                        ))}</tbody>
+                    </table>
+                </div>
             </section>}
         </div>
     );
