@@ -50,7 +50,7 @@ cd backend-bookstore-management-system
 .\mvnw.cmd spring-boot:run
 ```
 
-The backend listens at `http://localhost:8080` by default. **For first-time setup**, open `http://localhost:3000` after starting the frontend. The local dashboard presents a one-time Admin setup form when the database has no user accounts. The owner chooses a unique password; no default password is shipped. See the [first-run setup guide](backend-bookstore-management-system/README.md#initial-admin-account-provisioning). Do not commit passwords or database files.
+The backend listens at `http://127.0.0.1:8080` by default. **For first-time setup**, open `http://127.0.0.1:3000` after starting the frontend. The local dashboard presents a one-time Admin setup form when the database has no user accounts. The owner chooses a unique password; no default password is shipped. See the [first-run setup guide](backend-bookstore-management-system/README.md#initial-admin-account-provisioning). Do not commit passwords or database files.
 
 3. In a **second PowerShell terminal**, from the repository root, start the frontend:
 
@@ -60,7 +60,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. The frontend defaults to the API at `http://localhost:8080`; see [frontend configuration](frontend/README.md) for `NEXT_PUBLIC_API_BASE_URL`, session cookies, CSRF, and troubleshooting.
+Open `http://127.0.0.1:3000`. The frontend defaults to the API at `http://127.0.0.1:8080`; see [frontend configuration](frontend/README.md) for `NEXT_PUBLIC_API_BASE_URL`, session cookies, CSRF, and troubleshooting.
 
 ### Run quality checks
 
