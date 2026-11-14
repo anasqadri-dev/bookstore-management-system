@@ -35,3 +35,131 @@ body {
 aside :where(button, a):focus-visible {
   outline-color: #facc15;
 }
+
+
+/* Persisted POS receipt preview and printer/PDF layouts. */
+.receipt-print {
+  width: 100%;
+  max-width: 720px;
+  padding: 1.25rem;
+  border: 1px dashed #9ca3af;
+  color: #111827;
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt-print-center {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.receipt-store-name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.receipt-print-meta {
+  border-top: 1px dashed #6b7280;
+  border-bottom: 1px dashed #6b7280;
+  padding: 0.65rem 0;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.receipt-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.receipt-print-table th,
+.receipt-print-table td {
+  padding: 0.4rem 0.25rem;
+  border-bottom: 1px dashed #d1d5db;
+  text-align: right;
+  vertical-align: top;
+}
+
+.receipt-print-table th:first-child,
+.receipt-print-table td:first-child {
+  text-align: left;
+}
+
+.receipt-print-table small {
+  display: block;
+  color: #4b5563;
+  font-size: 0.68rem;
+}
+
+.receipt-print-total {
+  margin: 0.75rem 0;
+  border-top: 1px dashed #6b7280;
+  padding-top: 0.6rem;
+}
+
+.receipt-print-total p {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.25rem 0;
+}
+
+.receipt-grand-total {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 4mm;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible !important;
+  }
+
+  .receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: #000 !important;
+    background: #fff !important;
+    break-inside: avoid;
+  }
+
+  .receipt-print[data-paper-width="58"] {
+    width: 54mm;
+    font-size: 8pt;
+  }
+
+  .receipt-print[data-paper-width="80"] {
+    width: 74mm;
+    font-size: 9pt;
+  }
+
+  .receipt-print[data-paper-width="standard"] {
+    width: 190mm;
+    font-size: 10pt;
+  }
+
+  .receipt-print-table th,
+  .receipt-print-table td {
+    border-color: #777;
+    padding: 1.5mm 0.8mm;
+  }
+
+  .receipt-print-meta {
+    border-color: #777;
+  }
+}
