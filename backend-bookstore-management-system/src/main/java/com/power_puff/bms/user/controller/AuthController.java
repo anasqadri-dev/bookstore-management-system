@@ -15,6 +15,9 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +30,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
@@ -59,9 +64,21 @@ public class AuthController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username().trim(), request.password()));
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.username().trim(), request.password()));
+        } catch (AuthenticationException authenticationFailure) {
+            try {
+                activityLogService.recordAuthenticationFailure(request.username());
+            } catch (RuntimeException auditFailure) {
+                // Authentication behavior must remain deterministic if audit storage fails.
+                // The warning intentionally excludes the attempted username and credentials.
+                log.warn("Could not persist a failed-login audit event.", auditFailure);
+            }
+            throw authenticationFailure;
+        }
 
         HttpSession existingSession = servletRequest.getSession(false);
         if (existingSession != null) {
