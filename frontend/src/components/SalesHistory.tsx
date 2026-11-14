@@ -68,13 +68,18 @@ export default function SalesHistory() {
 
             <div className="rounded-lg border border-gray-200 bg-white p-6">
                 <div className="mb-5 flex flex-wrap gap-3">
+                    <label htmlFor="sales-history-search" className="sr-only">Search sales by ID, customer or book</label>
                     <input
+                        id="sales-history-search"
+                        type="search"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search sales..."
                         className="min-w-0 flex-1 rounded-md border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-600"
                     />
+                    <label htmlFor="sales-history-date" className="sr-only">Filter sales by date</label>
                     <input
+                        id="sales-history-date"
                         type="date"
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
@@ -119,6 +124,8 @@ export default function SalesHistory() {
                                 <td className="p-4">{sale.payment}</td>
                                 <td className="p-4">
                                     <button
+                                        type="button"
+                                        aria-label={`View sale ${sale.id}`}
                                         onClick={() => setSelected(sale)}
                                         className="font-medium text-blue-700 hover:underline"
                                     >
@@ -136,7 +143,7 @@ export default function SalesHistory() {
                 <div className="rounded-lg border bg-white p-6">
                     <div className="flex justify-between">
                         <h3 className="text-lg font-semibold">Sale Details</h3>
-                        <button onClick={() => setSelected(null)}>Close</button>
+                        <button type="button" onClick={() => setSelected(null)} aria-label="Close sale details">Close</button>
                     </div>
                     <div className="mt-4 space-y-2 text-sm">
                         <p>Sale ID: {selected.id}</p>
