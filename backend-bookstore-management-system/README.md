@@ -62,7 +62,7 @@ A fresh installation is initialized by the bookstore owner through the local fir
    npm run dev
    ```
 
-3. Open `http://localhost:3000`. When the database has no user accounts and has not been initialized, the dashboard displays the **Create your Admin account** screen. Enter the owner's name, a username, and a unique password, then confirm the password.
+3. Open `http://127.0.0.1:3000`. When the database has no user accounts and has not been initialized, the dashboard displays the **Create your Admin account** screen. Enter the owner's name, a username, and a unique password, then confirm the password.
 4. After the account is created, sign in through the normal login screen.
 
 The setup API is protected by the same session-bound CSRF mechanism as other state-changing requests. The API binds to loopback (`127.0.0.1`) and is not intended to be exposed to the shop LAN. Passwords must contain 8–72 UTF-8 bytes and are BCrypt-hashed before persistence; plaintext passwords are not stored or logged.
