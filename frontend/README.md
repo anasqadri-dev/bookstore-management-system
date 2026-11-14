@@ -6,7 +6,7 @@ The bookstore dashboard is a **Next.js 16 App Router** application using React 1
 
 - Node.js **22** and npm (the frontend CI uses Node 22).
 - For login and authenticated API requests: **JDK 25** and the Spring Boot backend running locally.
-- A backend user provisioned through the documented first-run admin setup. Do not commit credentials or bootstrap passwords.
+- For a fresh database, the owner creates the first Admin through the one-time setup screen. Existing installations continue to use their existing accounts. Do not commit credentials or bootstrap passwords.
 
 ## Start locally
 
@@ -25,7 +25,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. The backend API listens on http://localhost:8080 by default. Backend startup, first-admin provisioning, and database setup are documented in [the backend README](../backend-bookstore-management-system/README.md).
+Open http://localhost:3000. The backend API listens on http://localhost:8080 by default. On a fresh database, the dashboard automatically displays the first-run Admin setup form. After the owner creates the account, the normal sign-in screen appears. See [the backend first-run setup instructions](../backend-bookstore-management-system/README.md#initial-admin-account-provisioning).
 
 If the backend is not running or no account has been provisioned, login and session restoration will not work. Do not hard-code credentials or bypass the session check to test authenticated screens.
 
@@ -64,6 +64,7 @@ The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, 
 - `src/app/page.tsx` — authenticated dashboard shell, sidebar navigation, module selection, and session restoration.
 - `src/app/layout.tsx` and `src/app/globals.css` — application layout and shared styles.
 - `src/components/Login.tsx` — login form.
+- `src/components/AdminSetup.tsx` — one-time first-run Admin provisioning form.
 - `src/components/BooksInventory.tsx` — inventory UI.
 - `src/components/SalesPOS.tsx` and `SalesHistory.tsx` — point-of-sale and sales history screens.
 - `src/components/Suppliers.tsx` and `PurchaseOrders.tsx` — supplier and purchasing screens.
