@@ -43,11 +43,15 @@ jobs:
             echo "Lockfile is already current."
             exit 0
           fi
+          git stash push -m "refreshed frontend lockfile" -- package-lock.json
+          git fetch origin "${GITHUB_HEAD_REF}"
+          git checkout -B "${GITHUB_HEAD_REF}" "origin/${GITHUB_HEAD_REF}"
+          git stash pop
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
           git commit -m "chore(deps): refresh frontend lockfile"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+          git push origin "${GITHUB_HEAD_REF}"
 
       - name: Upload refreshed frontend lockfile
         uses: actions/upload-artifact@v4
