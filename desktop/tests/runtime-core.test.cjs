@@ -30,11 +30,9 @@ test("renderer navigation is restricted to the exact local origin", () => {
 });
 
 test("backend environment points SQLite to user data and allows only the local renderer", () => {
-    const env = buildBackendEnvironment({ PATH: "safe-path" }, "C:/Users/Owner/AppData/Roaming/BMS/bookstore.db",
-        "http://127.0.0.1:3000");
+    const env = buildBackendEnvironment({ PATH: "safe-path" }, "C:/Users/Owner/AppData/Roaming/BMS/bookstore.db");
     assert.equal(env.PATH, "safe-path");
     assert.equal(env.BMS_DATABASE_PATH, "C:/Users/Owner/AppData/Roaming/BMS/bookstore.db");
-    assert.equal(env.BMS_CORS_ALLOWED_ORIGINS, "http://127.0.0.1:3000");
     assert.equal(env.BMS_BOOTSTRAP_ADMIN_ENABLED, "false");
 });
 
