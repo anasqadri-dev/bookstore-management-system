@@ -54,7 +54,14 @@ jobs:
           cache: maven
           cache-dependency-path: backend-bookstore-management-system/pom.xml
       - name: Check backend dependencies for CVSS 7+ vulnerabilities
-        run: bash ./mvnw -B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          args=(-B org.owasp:dependency-check-maven:12.1.8:check -DfailBuildOnCVSS=7 -Dformats=HTML,JSON -DnvdMaxRetryCount=10 -DnvdApiDelay=10000 -DnvdValidForHours=24)
+          if [ -n "$NVD_API_KEY" ]; then
+            args+=("-DnvdApiKey=$NVD_API_KEY")
+          fi
+          bash ./mvnw "${args[@]}"
       - name: Upload vulnerability report
         if: always()
         uses: actions/upload-artifact@v4
