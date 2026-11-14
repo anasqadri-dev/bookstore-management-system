@@ -25,6 +25,13 @@ Login uses an HTTP session. Desktop UI requests after login must retain and send
 - `GET /api/auth/me` — returns the authenticated account identity and role.
 - `POST /api/auth/logout` — invalidates the authenticated session.
 
+## First-run Admin setup
+
+- `GET /api/setup/status` — public local status check; returns `data.setupRequired` as `true` only when no account exists and the one-time setup marker is absent.
+- `POST /api/setup` — creates the first Admin from `username`, `password`, and `fullName`; requires the session-bound `X-CSRF-TOKEN` header and returns HTTP 201 on success.
+- A completed setup or an existing user account causes later provisioning requests to return HTTP 409. Invalid or weak credentials return HTTP 400.
+- The Admin row and singleton setup marker are committed atomically. Failed transactions roll back the marker and may be retried; concurrent requests cannot create multiple initial Admin accounts.
+
 ## Inventory
 
 - `GET /api/products` — list products; optional `search` query parameter matches title or SKU.
