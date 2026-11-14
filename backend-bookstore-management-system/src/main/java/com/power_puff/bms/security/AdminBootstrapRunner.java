@@ -11,6 +11,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 @Component
 @ConditionalOnProperty(prefix = "bms.bootstrap-admin", name = "enabled", havingValue = "true")
@@ -36,21 +40,38 @@ public class AdminBootstrapRunner implements ApplicationRunner {
     }
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         if (userRepository.count() > 0) {
             log.info("Admin bootstrap skipped because at least one user account already exists.");
             return;
         }
-        if (username == null || username.isBlank()
-                || password == null || password.isBlank()) {
+        String normalizedUsername = username == null
+                ? "" : username.trim().toLowerCase(Locale.ROOT);
+        String normalizedFullName = fullName == null ? "" : fullName.trim();
+        int passwordBytes = password == null
+                ? 0 : password.getBytes(StandardCharsets.UTF_8).length;
+
+        if (normalizedUsername.isBlank() || normalizedUsername.length() > 100) {
             throw new IllegalStateException(
-                    "Admin bootstrap is enabled but BMS_BOOTSTRAP_ADMIN_USERNAME or " +
-                    "BMS_BOOTSTRAP_ADMIN_PASSWORD is missing.");
+                    "Admin bootstrap requires a username containing 1 to 100 characters.");
+        }
+        if (normalizedFullName.isBlank() || normalizedFullName.length() > 150) {
+            throw new IllegalStateException(
+                    "Admin bootstrap requires a full name containing 1 to 150 characters.");
+        }
+        if (passwordBytes < 8 || passwordBytes > 72) {
+            throw new IllegalStateException(
+                    "Admin bootstrap password must contain 8 to 72 UTF-8 bytes.");
+        }
+        if (userRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
+            throw new IllegalStateException(
+                    "Admin bootstrap username is already in use; no account was changed.");
         }
 
-        User admin = new User(username, passwordEncoder.encode(password),
-                fullName, UserRole.ADMIN);
-        userRepository.save(admin);
+        User admin = new User(normalizedUsername, passwordEncoder.encode(password),
+                normalizedFullName, UserRole.ADMIN);
+        userRepository.saveAndFlush(admin);
         log.info("Initial Admin account created for username '{}'.", admin.getUsername());
     }
 }

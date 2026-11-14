@@ -1,11 +1,14 @@
 package com.power_puff.bms.security;
 
 import com.jayway.jsonpath.JsonPath;
+import com.power_puff.bms.backup.dto.DatabaseBackupResult;
+import com.power_puff.bms.backup.service.DatabaseBackupService;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.entity.UserRole;
 import com.power_puff.bms.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -17,6 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +52,12 @@ class UserSessionRevocationIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DatabaseBackupService backupService;
+
+    @TempDir
+    Path temporaryDirectory;
 
     private final List<Long> createdUserIds = new ArrayList<>();
 
@@ -122,6 +133,52 @@ class UserSessionRevocationIntegrationTest {
         mockMvc.perform(get("/api/auth/me").session(newStaffSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value(staff.getUsername()));
+    }
+
+    @Test
+    void successfulDatabaseRestoreInvalidatesPreviouslyAuthenticatedSessions()
+            throws Exception {
+        User admin = createUser(UserRole.ADMIN, "restore-admin", ADMIN_PASSWORD);
+        Path backupPath = temporaryDirectory.resolve("session-restore.db");
+        DatabaseBackupResult backup = backupService.createBackup(backupPath.toString());
+        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        String csrfToken = fetchCsrfToken(adminSession);
+
+        mockMvc.perform(post("/api/backup/restore")
+                        .session(adminSession)
+                        .header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"backupPath":"%s"}
+                                """.formatted(backup.filePath())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/auth/me").session(adminSession))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/products").session(adminSession))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void failedDatabaseRestoreDoesNotInvalidateTheCurrentSession() throws Exception {
+        User admin = createUser(UserRole.ADMIN, "restore-failure-admin", ADMIN_PASSWORD);
+        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        String csrfToken = fetchCsrfToken(adminSession);
+        Path invalidBackup = Files.createFile(
+                temporaryDirectory.resolve("invalid-session-restore.db"));
+
+        mockMvc.perform(post("/api/backup/restore")
+                        .session(adminSession)
+                        .header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"backupPath":"%s"}
+                                """.formatted(invalidBackup)))
+                .andExpect(status().is4xxClientError());
+
+        mockMvc.perform(get("/api/auth/me").session(adminSession))
+                .andExpect(status().isOk());
     }
 
     private User createUser(UserRole role, String prefix, String password) {

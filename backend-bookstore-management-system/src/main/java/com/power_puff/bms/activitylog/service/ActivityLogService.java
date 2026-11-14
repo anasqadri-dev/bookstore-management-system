@@ -30,6 +30,22 @@ public class ActivityLogService {
     }
 
     /**
+     * Records a failed authentication attempt without inventing an authenticated
+     * actor. Only the normalized username is retained; credentials and tokens
+     * are never included in audit details.
+     */
+    public void recordAuthenticationFailure(String attemptedUsername) {
+        String safeUsername = attemptedUsername == null ? "" : attemptedUsername
+                .replaceAll("[\\p{Cntrl}]", " ")
+                .trim();
+        if (safeUsername.length() > 100) {
+            safeUsername = safeUsername.substring(0, 100);
+        }
+        activityLogRepository.save(new ActivityLog(
+                null, "LOGIN_FAILED", "Failed login for username='" + safeUsername + "'"));
+    }
+
+    /**
      * Records an event for the authenticated local application user.
      * Sale services can call this method after a successful sale transaction.
      */
