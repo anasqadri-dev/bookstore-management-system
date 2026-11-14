@@ -20,7 +20,7 @@ export default function BackendReadiness({ children }: { children: ReactNode }) 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
 
-        apiRequest<unknown>("/api/health", { signal: controller.signal, cache: "no-store" })
+        apiRequest<{ status?: string; database?: string }>("/api/health", { signal: controller.signal, cache: "no-store" })
             .then((health) => {
                 if (active) setStatus(isBackendReady(health) ? "ready" : "unavailable");
             })
