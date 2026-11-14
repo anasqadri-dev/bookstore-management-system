@@ -2,7 +2,7 @@
 
 A local-first bookstore management project for Qadri Book Store, Shahi Bazaar, Rohri. Developed for **Software Quality Engineering (CS304)** at Sukkur IBA University, Fall 2026.
 
-> **Current status:** Active development. The Spring Boot backend and Next.js frontend are implemented, and the core dashboard, inventory, POS, school-order, supplier/purchasing, reports, and account-administration screens are connected to the local API. The Windows Electron desktop installer/runtime and complete manual acceptance testing have **not** been implemented. Do not use this project for live store transactions until the remaining verification work is complete.
+> **Current status:** Active development. The Spring Boot backend and Next.js frontend are implemented, and the core dashboard, inventory, POS, school-order, supplier/purchasing, reports, and account-administration screens are connected to the local API. The Electron main/preload runtime and Windows packaging workflow are now scaffolded; the installer and clean-machine acceptance tests are still pending. Do not use this project for live store transactions until the remaining verification work is complete.
 
 ## What is in the repository?
 
@@ -12,7 +12,7 @@ A local-first bookstore management project for Qadri Book Store, Shahi Bazaar, R
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 dashboard |
 | Database | Local SQLite file stored in the Windows user application-data directory by default |
 | Authentication | Backend session-based Admin/Staff login and authorization; first Admin is created through a one-time local setup screen |
-| Desktop packaging | **Planned:** Electron/Windows packaging is not present |
+| Desktop packaging | Electron runtime and Windows NSIS build workflow are scaffolded; clean-machine installer validation remains in progress |
 | Frontend tests | Node.js built-in test runner via `npm test`; deterministic API/model/accessibility regression tests are present, while comprehensive React component tests remain in progress |
 | Backend tests | Maven Wrapper test suite |
 
@@ -24,13 +24,14 @@ Backend endpoints cover products, sales, school orders, suppliers, purchase orde
 bookstore-management-system/
 ├── backend-bookstore-management-system/  # Spring Boot API, tests, Maven Wrapper
 ├── frontend/                            # Next.js dashboard
+├── desktop/                             # Electron runtime and Windows packaging (in progress)
 ├── docs/                                # SRS, SDS and SQE project documents
 ├── .github/                             # GitHub workflows and templates
 ├── CONTRIBUTING.md
 └── README.md
 ```
 
-The Electron runtime and distributable Windows installer are **future work**, not existing repository folders. Frontend tests live under `frontend/tests/`.
+The Electron runtime scaffold is under `desktop/`; a Windows installer build is defined in `.github/workflows/desktop-windows.yml`. The generated installer still requires clean Windows 10/11 and offline acceptance before release. Frontend tests live under `frontend/tests/`.
 
 ## Run locally (Windows PowerShell)
 
