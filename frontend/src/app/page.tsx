@@ -83,7 +83,7 @@ function AppContent() {
     const visibleMenu = getVisibleSections(currentUser?.role ?? "STAFF", menu);
 
     function navigateToPage(page: string) {
-        if (!canAccessSection(currentUser.role, page)) return;
+        if (!currentUser || !canAccessSection(currentUser.role, page)) return;
         setVisitedPages((previous) => {
             if (previous.has(page)) return previous;
             const next = new Set(previous);
