@@ -33,6 +33,17 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Refresh lockfile for declared dependency versions
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+
+      - name: Upload refreshed frontend lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: refreshed-frontend-lockfile
+          path: frontend/package-lock.json
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Install locked dependencies
         run: npm ci
 
