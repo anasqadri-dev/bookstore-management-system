@@ -21,12 +21,13 @@ class SqliteProductionSchemaValidationTest {
 
     @Test
     void baselineSchemaValidatesAgainstEveryJpaEntityAndRecordsMigrationHistory() {
-        assertEquals(12, jdbcTemplate.queryForObject("""
+        assertEquals(11, jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
                 FROM sqlite_master
                 WHERE type = 'table'
                   AND name NOT LIKE 'sqlite_%'
                   AND name <> 'schema_migrations'
+                  AND name <> 'admin_bootstrap_state'
                 """, Integer.class));
 
         assertEquals(5, jdbcTemplate.queryForObject(
