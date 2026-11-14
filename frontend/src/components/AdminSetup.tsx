@@ -80,7 +80,7 @@ export default function AdminSetup({ onComplete }: AdminSetupProps) {
                     </h1>
                     <p className="mt-3 max-w-lg text-sm leading-6 text-gray-300">
                         Set up the owner account for this bookstore. This step is available
-                        only before the first user account is created.
+                        only while first-time setup has not been completed.
                     </p>
                 </div>
 
@@ -116,7 +116,7 @@ export default function AdminSetup({ onComplete }: AdminSetupProps) {
                             onChange={(event) => setPassword(event.target.value)}
                             placeholder="Create a strong password" className={fieldClass} />
                         <p className="mt-2 text-xs text-gray-500">
-                            Use at least 8 characters. Passwords are securely hashed before storage.
+                            Use 8–72 UTF-8 bytes. Passwords are securely hashed before storage.
                         </p>
                     </div>
 
