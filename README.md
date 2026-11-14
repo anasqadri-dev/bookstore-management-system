@@ -87,6 +87,8 @@ The [frontend CI workflow](.github/workflows/frontend-ci.yml) runs `npm ci`, `np
 - [Software Requirements Specification (SRS)](docs/requirements/Bookstore-Management-System-SRS.pdf)
 - [Software Design Specification (SDS)](docs/design/Bookstore-Management-System-SDS.pdf)
 - [Implementation alignment supplement](docs/design/IMPLEMENTATION-ALIGNMENT.md) — current screen map, role access, and implemented/planned architecture
+- [Desktop runtime and Windows installer guide](desktop/README.md) — Electron process lifecycle and packaging workflow
+- [Windows release acceptance checklist](desktop/WINDOWS-ACCEPTANCE-CHECKLIST.md) — manual installer, offline, backup, printer, and uninstall verification
 - [Project proposal](docs/Project%20Proposal.pdf)
 - [SQE project requirements description](docs/SQE%20Project%20Requirements%20Description.pdf)
 - [Backend architecture, setup, and Admin bootstrap](backend-bookstore-management-system/README.md)
