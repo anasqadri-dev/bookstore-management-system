@@ -12,6 +12,7 @@ import Reports from "../components/Reports";
 import Settings from "../components/Settings";
 import SalesHistory from "../components/SalesHistory";
 import PurchaseOrders from "../components/PurchaseOrders";
+import DashboardOverview from "../components/DashboardOverview";
 import { apiRequest, type AuthenticatedUser } from "../lib/api";
 import BackendReadiness from "../components/BackendReadiness";
 
@@ -58,13 +59,6 @@ function AppContent() {
         { name: "School Orders", icon: "♧" },
         { name: "Reports", icon: "▥" },
         { name: "Settings", icon: "⚙" },
-    ];
-
-    const stats = [
-        { title: "Total Books", value: "0" },
-        { title: "Today's Sales", value: "Rs. 0" },
-        { title: "Low Stock", value: "0" },
-        { title: "Suppliers", value: "0" },
     ];
 
     const visibleMenu = currentUser?.role === "ADMIN"
@@ -173,57 +167,7 @@ function AppContent() {
 
                 <ModuleErrorBoundary key={activePage} onReturnToDashboard={() => setActivePage("Dashboard")}>
                 {activePage === "Dashboard" ? (
-                    <>
-                        {/* Statistics Cards */}
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                            {stats.map((stat) => (
-                                <div
-                                    key={stat.title}
-                                    className="rounded border border-gray-200 bg-white p-6"
-                                >
-                                    <p className="text-gray-500">
-                                        {stat.title}
-                                    </p>
-
-                                    <h3 className="mt-5 text-3xl font-bold">
-                                        {stat.value}
-                                    </h3>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Recent Sales */}
-                        <section className="mt-8 rounded border border-gray-200 bg-white p-6">
-                            <h3 className="mb-6 text-2xl font-semibold">
-                                Recent Sales
-                            </h3>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-[#f3f4f6]">
-                                    <tr>
-                                        <th className="p-4">Book Name</th>
-                                        <th className="p-4">Quantity</th>
-                                        <th className="p-4">Amount</th>
-                                        <th className="p-4">Date</th>
-                                    </tr>
-                                    </thead>
-
-                                    <tbody>
-                                    <tr>
-                                        <td
-                                            colSpan={4}
-                                            className="p-9 text-center text-gray-500"
-                                        >
-                                            No sales records available.
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </>
-
+                    <DashboardOverview />
                 ) : activePage === "Books Inventory" ? (
                     <BooksInventory />
                 ) : activePage === "Suppliers" ? (
