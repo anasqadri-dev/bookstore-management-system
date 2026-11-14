@@ -64,15 +64,17 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any()))
                 .thenThrow(new BadCredentialsException("Bad credentials"));
 
+        ActivityLogService activityLogService = mock(ActivityLogService.class);
         AuthController controller = new AuthController(
                 authenticationManager,
                 mock(SecurityContextRepository.class),
                 mock(UserAccountService.class),
-                mock(ActivityLogService.class), new ActiveSessionRegistry());
+                activityLogService, new ActiveSessionRegistry());
 
         assertThrows(BadCredentialsException.class, () -> controller.login(
                 new LoginRequest("staff1", "wrong-password"),
                 new MockHttpServletRequest(), new MockHttpServletResponse()));
+        verify(activityLogService).recordAuthenticationFailure("staff1");
     }
 
     @Test
