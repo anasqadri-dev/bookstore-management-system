@@ -206,6 +206,21 @@ function registerBackupDialogs() {
         });
         return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
     });
+
+    ipcMain.handle("bms:print-receipt", async (event) => {
+        if (!isTrustedNavigation(event.senderFrame?.url ?? "", LOCAL_ORIGIN) || !mainWindow) {
+            throw new Error("Untrusted renderer.");
+        }
+        return new Promise((resolve, reject) => {
+            mainWindow.webContents.print(
+                { silent: false, printBackground: true },
+                (success, failureReason) => {
+                    if (success) resolve(true);
+                    else reject(new Error(failureReason || "Printing was canceled or failed."));
+                },
+            );
+        });
+    });
 }
 
 function createMainWindow() {
