@@ -101,10 +101,13 @@ class DatabaseRestoreServiceIntegrationTest {
                 "SELECT COUNT(*) FROM sqlite_master "
                         + "WHERE type = 'table' AND name = 'admin_bootstrap_state'",
                 Integer.class));
-        assertEquals(1, jdbcTemplate.queryForObject(\n                "SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, "restore-owner"));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, "restore-owner"));
         assertTrue(!adminProvisioningService.isSetupRequired());
 
-        jdbcTemplate.update("DELETE FROM activity_logs WHERE user_id IN "\n                + "(SELECT id FROM users WHERE username = ?)", "restore-owner");\n        jdbcTemplate.update("DELETE FROM users WHERE username = ?", "restore-owner");
+        jdbcTemplate.update("DELETE FROM activity_logs WHERE user_id IN "
+                + "(SELECT id FROM users WHERE username = ?)", "restore-owner");
+        jdbcTemplate.update("DELETE FROM users WHERE username = ?", "restore-owner");
     }
 
     @Test
