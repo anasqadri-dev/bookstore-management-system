@@ -8,6 +8,16 @@ export class ApiError extends Error {
     }
 }
 
+function userFacingMessage(status, serverMessage) {
+    if (status === 401) return "Your session has expired or you are not signed in. Please sign in again.";
+    if (status === 403) return "You do not have permission to perform this action.";
+    if (status === 404) return "The requested record or resource could not be found.";
+    if (status === 409) return serverMessage || "This action conflicts with the current saved data. Refresh and try again.";
+    if (status >= 500) return "The local bookstore server encountered an error. Please try again.";
+    if (status === 400) return serverMessage || "Some of the entered information is invalid. Review the form and try again.";
+    return serverMessage || `The request failed (HTTP ${status}).`;
+}
+
 async function readEnvelope(response, operation) {
     let envelope;
     try {
@@ -27,16 +37,14 @@ async function readEnvelope(response, operation) {
     }
 
     if (!response.ok || !envelope.success) {
-        throw new ApiError(
-            typeof envelope.message === "string" && envelope.message.trim()
-                ? envelope.message
-                : `The request failed (HTTP ${response.status}).`,
-            {
-                status: response.status,
-                code: envelope.code ?? null,
-                details: envelope.data ?? null,
-            },
-        );
+        const serverMessage = typeof envelope.message === "string" && envelope.message.trim()
+            ? envelope.message
+            : "";
+        throw new ApiError(userFacingMessage(response.status, serverMessage), {
+            status: response.status,
+            code: envelope.code ?? null,
+            details: envelope.data ?? null,
+        });
     }
 
     if (!Object.prototype.hasOwnProperty.call(envelope, "data")) {

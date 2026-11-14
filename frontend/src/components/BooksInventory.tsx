@@ -326,19 +326,6 @@ export default function BooksInventory({ canManage }: { canManage: boolean }) {
                 </form>
             )}
 
-            {/* Search */}
-            <div className="mb-5">
-                <label htmlFor="search-books" className="sr-only">Search books by name or author</label>
-                <input
-                    type="search"
-                    id="search-books"
-                    placeholder="Search by book name or author"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded border border-gray-300 bg-white p-3 outline-none focus:border-blue-500 md:w-80"
-                />
-            </div>
-
             {/* Books Table */}
             <div className="overflow-x-auto rounded border border-gray-200 bg-white">
                 <table className="w-full text-left text-sm">

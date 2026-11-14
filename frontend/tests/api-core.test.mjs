@@ -70,12 +70,36 @@ for (const status of [400, 401, 403, 404, 409]) {
         await assert.rejects(client.request("/api/products"), (error) => {
             assert.ok(error instanceof ApiError);
             assert.equal(error.status, status);
-            assert.equal(error.message, `failure ${status}`);
+            const expectedMessages = {
+                400: "failure 400",
+                401: "Your session has expired or you are not signed in. Please sign in again.",
+                403: "You do not have permission to perform this action.",
+                404: "The requested record or resource could not be found.",
+                409: "failure 409",
+            };
+            assert.equal(error.message, expectedMessages[status]);
             assert.deepEqual(error.details, { field: "invalid" });
             return true;
         });
     });
 }
+
+test("hides internal server error details from the UI", async () => {
+    const client = createApiClient({
+        baseUrl: "http://127.0.0.1:8080",
+        fetchImpl: async () => response(500, {
+            success: false,
+            message: "org.hibernate.SQLSyntaxErrorException: sensitive internal detail",
+            data: null,
+        }),
+    });
+    await assert.rejects(client.request("/api/products"), (error) => {
+        assert.equal(error.status, 500);
+        assert.equal(error.message, "The local bookstore server encountered an error. Please try again.");
+        assert.equal(error.message.includes("hibernate"), false);
+        return true;
+    });
+});
 
 test("distinguishes malformed JSON and malformed envelopes", async () => {
     const malformedJson = createApiClient({
