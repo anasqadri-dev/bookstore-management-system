@@ -7,7 +7,7 @@ import com.power_puff.bms.user.dto.LoginRequest;
 import com.power_puff.bms.user.dto.LoginResponse;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.mapper.UserMapper;
-import com.power_puff.bms.user.repository.UserRepository;
+import com.power_puff.bms.user.service.UserAccountService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -29,16 +29,16 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
-    private final UserRepository userRepository;
+    private final UserAccountService userAccountService;
     private final ActivityLogService activityLogService;
 
     public AuthController(AuthenticationManager authenticationManager,
                           SecurityContextRepository securityContextRepository,
-                          UserRepository userRepository,
+                          UserAccountService userAccountService,
                           ActivityLogService activityLogService) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
-        this.userRepository = userRepository;
+        this.userAccountService = userAccountService;
         this.activityLogService = activityLogService;
     }
 
@@ -101,9 +101,6 @@ public class AuthController {
         if (authentication == null || authentication.getName() == null) {
             throw new ResourceNotFoundException("Authenticated user account was not found.");
         }
-        return userRepository.findByUsernameIgnoreCase(authentication.getName())
-                .filter(User::isActive)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Authenticated user account was not found or is inactive."));
+        return userAccountService.findActiveUserByUsername(authentication.getName());
     }
 }
