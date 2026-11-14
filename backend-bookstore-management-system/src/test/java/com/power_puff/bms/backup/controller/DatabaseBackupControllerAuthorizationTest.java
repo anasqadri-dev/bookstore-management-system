@@ -140,7 +140,7 @@ class DatabaseBackupControllerAuthorizationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"backupPath":"%s"}
-                                """.formatted(temporaryDirectory.resolve("anonymous.db"))))
+                                """.formatted(jsonEscape(temporaryDirectory.resolve("anonymous.db").toString()))))
                 .andExpect(status().isUnauthorized());
     }
     private String jsonEscape(String value) {
