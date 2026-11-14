@@ -46,3 +46,16 @@ test("POS and saved Sales History receipts expose native print-dialog layouts", 
     assert.ok(styles.includes('.receipt-print[data-paper-width="80"]'));
     assert.ok(styles.includes('.receipt-print[data-paper-width="standard"]'));
 });
+
+test("receipt print actions use the native Windows printer dialog in Electron", async () => {
+    const preload = await read("../../desktop/preload.cjs");
+    const main = await read("../../desktop/main.cjs");
+    const pos = await read("../src/components/SalesPOS.tsx");
+    const history = await read("../src/components/SalesHistory.tsx");
+    assert.ok(preload.includes('printReceipt: () => ipcRenderer.invoke("bms:print-receipt")'));
+    assert.ok(main.includes('ipcMain.handle("bms:print-receipt"'));
+    assert.ok(main.includes("{ silent: false, printBackground: true }"));
+    assert.ok(main.includes('isTrustedNavigation(event.senderFrame?.url ?? "", LOCAL_ORIGIN)'));
+    assert.ok(pos.includes("window.bmsDesktop.printReceipt()"));
+    assert.ok(history.includes("window.bmsDesktop.printReceipt()"));
+});
