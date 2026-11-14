@@ -153,7 +153,6 @@ public class DatabaseRestoreService {
 
         // Older valid backups may predate either internal metadata table.
         // They are accepted, and the bootstrap marker is recreated after restore.
-        Set<String> supportedTables = new HashSet<>(REQUIRED_TABLES);
         Set<String> normalizedTables = new HashSet<>(actualTables);
         normalizedTables.remove("schema_migrations");
         normalizedTables.remove("admin_bootstrap_state");
@@ -163,6 +162,21 @@ public class DatabaseRestoreService {
                             + "Expected business tables " + REQUIRED_TABLES
                             + " with optional internal metadata, but found "
                             + actualTables + ".");
+        }
+
+        if (actualTables.contains("admin_bootstrap_state")) {
+            Set<String> actualBootstrapColumns = new HashSet<>();
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(
+                         "PRAGMA table_info('admin_bootstrap_state')")) {
+                while (resultSet.next()) {
+                    actualBootstrapColumns.add(resultSet.getString("name"));
+                }
+            }
+            if (!Set.of("id", "completed_at").equals(actualBootstrapColumns)) {
+                throw new SQLException(
+                        "Backup contains an unsupported first-run setup marker table.");
+            }
         }
 
         if (actualTables.contains("schema_migrations")) {
