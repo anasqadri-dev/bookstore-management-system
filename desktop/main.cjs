@@ -24,6 +24,7 @@ let shutdownPromise = null;
 let allowQuit = false;
 let isShuttingDown = false;
 let backupDialogsRegistered = false;
+let securityHeadersRegistered = false;
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 if (!singleInstanceLock) {
@@ -149,7 +150,7 @@ function startFrontend() {
     let alive = true;
     frontendProcess.once("exit", () => {
         alive = false;
-        if (!allowQuit && mainWindow) {
+        if (!isShuttingDown && mainWindow) {
             void dialog.showMessageBox(mainWindow, {
                 type: "error",
                 title: "Bookstore interface stopped",
@@ -225,7 +226,9 @@ function registerBackupDialogs() {
 
 function createMainWindow() {
     registerBackupDialogs();
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (!securityHeadersRegistered) {
+        securityHeadersRegistered = true;
+        session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
@@ -236,7 +239,8 @@ function createMainWindow() {
                 "Referrer-Policy": ["no-referrer"],
             },
         });
-    });
+        });
+    }
 
     mainWindow = new BrowserWindow({
         width: 1440,
