@@ -37,6 +37,8 @@ export default function Settings() {
     });
     const [editError, setEditError] = useState("");
     const [notice, setNotice] = useState("");
+    const [backupBusy, setBackupBusy] = useState(false);
+    const [backupError, setBackupError] = useState("");
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -149,6 +151,73 @@ export default function Settings() {
         }
     }
 
+    async function createDatabaseBackup() {
+        const desktop = window.bmsDesktop;
+        if (!desktop?.isDesktop) {
+            setBackupError("Database file selection is available only in the Windows desktop application.");
+            return;
+        }
+        setBackupError("");
+        setNotice("");
+        let destinationPath: string | null;
+        try {
+            destinationPath = await desktop.chooseBackupDestination();
+        } catch {
+            setBackupError("The backup save dialog could not be opened.");
+            return;
+        }
+        if (!destinationPath) return;
+
+        setBackupBusy(true);
+        try {
+            await apiRequest<void>("/api/backup", {
+                method: "POST",
+                body: JSON.stringify({ destinationPath }),
+            });
+            setNotice("Database backup created successfully.");
+        } catch (cause) {
+            setBackupError(cause instanceof Error ? cause.message : "Unable to create the database backup.");
+        } finally {
+            setBackupBusy(false);
+        }
+    }
+
+    async function restoreDatabaseBackup() {
+        const desktop = window.bmsDesktop;
+        if (!desktop?.isDesktop) {
+            setBackupError("Database file selection is available only in the Windows desktop application.");
+            return;
+        }
+        setBackupError("");
+        setNotice("");
+        let backupPath: string | null;
+        try {
+            backupPath = await desktop.chooseBackupFile();
+        } catch {
+            setBackupError("The backup file picker could not be opened.");
+            return;
+        }
+        if (!backupPath) return;
+        if (!window.confirm(
+            "Restoring this backup will replace the active bookstore database and sign out all users. Continue?",
+        )) return;
+        if (!window.confirm(`Restore the selected database backup now?\n\n${backupPath}`)) return;
+
+        setBackupBusy(true);
+        try {
+            await apiRequest<void>("/api/backup/restore", {
+                method: "POST",
+                body: JSON.stringify({ backupPath }),
+            });
+            setNotice("Database restored successfully. Sign in again to continue.");
+            window.dispatchEvent(new Event("bms:session-expired"));
+        } catch (cause) {
+            setBackupError(cause instanceof Error ? cause.message : "Unable to restore the selected backup.");
+        } finally {
+            setBackupBusy(false);
+        }
+    }
+
     const fieldClass = "w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 disabled:bg-gray-100";
 
     return (
@@ -250,6 +319,29 @@ export default function Settings() {
                         </table>
                     </div>
                 )}
+            </section>
+
+            <section className="rounded border border-gray-200 bg-white p-6">
+                <h3 className="text-xl font-semibold text-gray-900">Database backup and restore</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Create a verified SQLite backup or restore a previously saved database. These file-picker actions
+                    are available in the packaged desktop application and require an Admin session.
+                </p>
+                {backupError && <p role="alert" className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{backupError}</p>}
+                <div className="mt-4 flex flex-wrap gap-3">
+                    <button type="button" onClick={() => void createDatabaseBackup()} disabled={backupBusy}
+                        className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+                        {backupBusy ? "Working..." : "Create database backup"}
+                    </button>
+                    <button type="button" onClick={() => void restoreDatabaseBackup()} disabled={backupBusy}
+                        className="rounded border border-red-300 px-4 py-2 text-sm font-medium text-red-700 disabled:opacity-50">
+                        Restore from backup
+                    </button>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-gray-500">
+                    Restore replaces current data. The backend validates the selected SQLite file and creates a safety
+                    copy before replacement. All active sessions are invalidated after a successful restore.
+                </p>
             </section>
 
             <section className="rounded border border-gray-200 bg-white p-6">
