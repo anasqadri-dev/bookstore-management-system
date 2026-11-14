@@ -1,7 +1,7 @@
 export function validateSalesDateRange(startDate, endDate) {
     if (!startDate || !endDate) return "Choose both a start date and an end date.";
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate)
-        || !/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)
+        || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
         return "Dates must use the YYYY-MM-DD format.";
     }
     const isCalendarDate = (value) => {
