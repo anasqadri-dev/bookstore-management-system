@@ -36,7 +36,28 @@ export default function BooksInventory() {
             setLoading(false);
         }
     }, [search, showLowStock]);
-    useEffect(() => { void loadBooks(); }, [loadBooks]);
+    useEffect(() => {
+        let active = true;
+        async function loadInitialOrFilteredBooks() {
+            try {
+                const endpoint = showLowStock
+                    ? "/api/products/low-stock"
+                    : `/api/products${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`;
+                const products = await apiRequest<Book[]>(endpoint, { cache: "no-store" });
+                if (!Array.isArray(products)) throw new Error("The inventory response was invalid.");
+                if (active) {
+                    setBooks(products);
+                    setApiError("");
+                }
+            } catch (error) {
+                if (active) setApiError(error instanceof Error ? error.message : "Unable to load books.");
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+        void loadInitialOrFilteredBooks();
+        return () => { active = false; };
+    }, [search, showLowStock]);
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [formError, setFormError] = useState("");
