@@ -22,6 +22,7 @@ let frontendProcess = null;
 let mainWindow = null;
 let shutdownPromise = null;
 let allowQuit = false;
+let isShuttingDown = false;
 let backupDialogsRegistered = false;
 
 const singleInstanceLock = app.requestSingleInstanceLock();
@@ -102,7 +103,7 @@ function startBackend() {
     let alive = true;
     backendProcess.once("exit", () => {
         alive = false;
-        if (!allowQuit && mainWindow) {
+        if (!isShuttingDown && mainWindow) {
             void dialog.showMessageBox(mainWindow, {
                 type: "error",
                 title: "Bookstore server stopped",
@@ -283,6 +284,7 @@ async function shutdownServices() {
 app.on("before-quit", (event) => {
     if (allowQuit) return;
     event.preventDefault();
+    isShuttingDown = true;
     void shutdownServices().finally(() => {
         allowQuit = true;
         app.quit();
