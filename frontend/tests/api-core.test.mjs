@@ -161,3 +161,16 @@ test("does not treat invalid login or initial session lookup as an expired sessi
     await assert.rejects(client.request("/api/auth/me"));
     assert.equal(expired, 0);
 });
+
+test("invalid login credentials receive a sign-in-specific safe message", async () => {
+    const client = createApiClient({
+        baseUrl: "http://127.0.0.1:8080",
+        fetchImpl: async () => response(401, {
+            success: false, message: "Bad credentials", data: null,
+        }),
+    });
+    await assert.rejects(client.request("/api/auth/login", { method: "POST", body: "{}" }), (error) => {
+        assert.equal(error.message, "Invalid username or password.");
+        return true;
+    });
+});

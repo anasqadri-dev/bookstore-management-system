@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,6 +59,7 @@ class DatabaseRestoreServiceIntegrationTest {
         String laterSupplier = "Restore Later " + UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO suppliers (name) VALUES (?)", existingSupplier);
         Map<String, Long> expectedTableCounts = currentBusinessTableCounts();
+        Map<String, List<Map<String, Object>>> expectedTableRows = currentBusinessTableRows();
 
         Path backupPath = temporaryDirectory.resolve("before-change.db");
         DatabaseBackupResult backup = backupService.createBackup(backupPath.toString());
@@ -71,6 +73,8 @@ class DatabaseRestoreServiceIntegrationTest {
         assertEquals(1, countSupplier(existingSupplier));
         assertEquals(expectedTableCounts, restored.tableCounts(),
                 "Restore must preserve row counts for every business table");
+        assertEquals(expectedTableRows, currentBusinessTableRows(),
+                "Restore must preserve every saved column value in all eleven business tables");
         assertTrue(restored.productCount() >= 0);
         assertTrue(restored.saleCount() >= 0);
         assertEquals("before-change.db", restored.fileName());
@@ -101,10 +105,13 @@ class DatabaseRestoreServiceIntegrationTest {
                 "SELECT COUNT(*) FROM sqlite_master "
                         + "WHERE type = 'table' AND name = 'admin_bootstrap_state'",
                 Integer.class));
-        assertEquals(1, userRepository.count());
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, "restore-owner"));
         assertTrue(!adminProvisioningService.isSetupRequired());
 
-        userRepository.deleteAll();
+        jdbcTemplate.update("DELETE FROM activity_logs WHERE user_id IN "
+                + "(SELECT id FROM users WHERE username = ?)", "restore-owner");
+        jdbcTemplate.update("DELETE FROM users WHERE username = ?", "restore-owner");
     }
 
     @Test
@@ -150,6 +157,18 @@ class DatabaseRestoreServiceIntegrationTest {
             counts.put(table, count);
         }
         return Map.copyOf(counts);
+    }
+
+    private Map<String, List<Map<String, Object>>> currentBusinessTableRows() {
+        Map<String, List<Map<String, Object>>> rowsByTable = new LinkedHashMap<>();
+        for (String table : List.of(
+                "users", "products", "sales", "sale_items", "schools",
+                "school_orders", "school_order_items", "suppliers",
+                "purchase_orders", "purchase_order_items", "activity_logs")) {
+            rowsByTable.put(table, jdbcTemplate.queryForList(
+                    "SELECT * FROM " + table + " ORDER BY rowid"));
+        }
+        return rowsByTable;
     }
 
     private int countSupplier(String name) {

@@ -53,12 +53,13 @@ Run these from `frontend/`:
 | `npm run dev` | Start development server on port 3000 |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run deterministic frontend tests using Node.js built-in test runner |
-| `npm run build` | Build the production application (includes Next.js checks) |
+| `npm run build` | Build the production Next.js application (standalone output) |
+| `npm run build:desktop` | Build standalone output and copy static assets required by the Electron runtime |
 | `npm run start` | Serve an existing production build |
 
 **Automated frontend tests:** `npm test` runs the deterministic Node test suite in non-interactive mode. Current tests cover API envelope/session/CSRF behavior, role-policy and account-form helpers, navigation state, and backend health-response validation. This is a growing regression suite, not a substitute for the remaining React component-level workflow tests or manual Windows usability/accessibility checks.
 
-The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` on Node 22 for frontend-related PRs.
+The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` on Node 22 for frontend-related PRs. The [Windows desktop workflow](../.github/workflows/desktop-windows.yml) runs `npm run build:desktop` before packaging the Electron runtime.
 
 ## Project layout
 
@@ -82,3 +83,12 @@ The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs `npm ci`, 
 - **Before requesting a merge:** Run lint and build, manually exercise affected flows, and verify the PR checks. Changes to backend integrations also need end-to-end verification.
 
 For project-wide context, see the [repository README](../README.md).
+
+
+## Validation commands
+
+- `npm test` runs the Node built-in contract/model/accessibility suite.
+- `npm run test:ui` runs Vitest component and session integration tests.
+- `npm run lint` runs ESLint.
+- `npm run build` creates the normal Next.js production build.
+- `npm run build:desktop` creates the Next.js standalone output consumed by the Electron Windows package.

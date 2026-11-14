@@ -45,6 +45,8 @@ export default function SalesHistory() {
     const [search, setSearch] = useState("");
     const [date, setDate] = useState("");
     const [selected, setSelected] = useState<Sale | null>(null);
+    const [paperWidth, setPaperWidth] = useState<"58" | "80" | "standard">("80");
+    const [printError, setPrintError] = useState("");
 
     useEffect(() => {
         let active = true;
@@ -68,6 +70,19 @@ export default function SalesHistory() {
 
         return () => { active = false; };
     }, []);
+
+    async function printSelectedReceipt() {
+        setPrintError("");
+        try {
+            if (window.bmsDesktop?.isDesktop) {
+                await window.bmsDesktop.printReceipt();
+            } else {
+                window.print();
+            }
+        } catch (cause) {
+            setPrintError(cause instanceof Error ? cause.message : "Unable to open the printer dialog.");
+        }
+    }
 
     const filtered = filterSavedSales(sales, search, date);
     const summary = summarizeSavedSales(filtered);
@@ -180,43 +195,68 @@ export default function SalesHistory() {
 
             {selected && (
                 <section aria-labelledby="sale-history-detail-title" className="rounded-lg border bg-white p-6">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="print:hidden mb-4 flex flex-wrap items-center justify-between gap-3">
                         <h3 id="sale-history-detail-title" className="text-lg font-semibold">
                             Saved Receipt — #{selected.id}
                         </h3>
-                        <button type="button" onClick={() => setSelected(null)} aria-label="Close receipt details">
-                            Close
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <label htmlFor="history-receipt-paper" className="text-sm">Paper</label>
+                            <select id="history-receipt-paper" value={paperWidth}
+                                onChange={(event) => setPaperWidth(event.target.value as "58" | "80" | "standard")}
+                                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm">
+                                <option value="58">58 mm thermal</option>
+                                <option value="80">80 mm thermal</option>
+                                <option value="standard">A4 / PDF</option>
+                            </select>
+                            <button type="button" onClick={() => void printSelectedReceipt()}
+                                className="rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
+                                Print receipt
+                            </button>
+                            <button type="button" onClick={() => setSelected(null)} aria-label="Close receipt details"
+                                className="rounded border px-3 py-2 text-sm">Close</button>
+                        </div>
                     </div>
-                    <div className="mt-4 space-y-1 text-sm">
-                        <p>Date: {displayDate(selected.saleDate)}</p>
-                        <p>Customer: {selected.customerName || "Walk-in Customer"}</p>
-                        <p>Cashier: {selected.cashierName}</p>
-                    </div>
-                    <div className="mt-4 overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                    {printError && <p role="alert" className="print:hidden mb-3 rounded bg-red-50 p-3 text-sm text-red-800">{printError}</p>}
+                    <div className="receipt-print mx-auto bg-white text-black" data-paper-width={paperWidth}>
+                        <header className="receipt-print-center">
+                            <h1 className="receipt-store-name">Book Store</h1>
+                            <p>Sales receipt</p>
+                            <p>Receipt #{selected.id}</p>
+                        </header>
+                        <div className="receipt-print-meta">
+                            <p>Date: {displayDate(selected.saleDate)}</p>
+                            <p>Customer: {selected.customerName || "Walk-in Customer"}</p>
+                            <p>Cashier: {selected.cashierName}</p>
+                        </div>
+                        <table className="receipt-print-table">
                             <thead>
-                                <tr className="border-b text-gray-500">
-                                    <th scope="col" className="py-2">Book</th>
-                                    <th scope="col" className="py-2">Qty</th>
-                                    <th scope="col" className="py-2">Unit price</th>
-                                    <th scope="col" className="py-2 text-right">Subtotal</th>
+                                <tr>
+                                    <th scope="col">Book</th>
+                                    <th scope="col">Qty</th>
+                                    <th scope="col">Unit price</th>
+                                    <th scope="col">Subtotal</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {selected.items.map((item, index) => (
-                                    <tr key={`${item.productId}-${index}`} className="border-b">
-                                        <td className="py-2">{item.title} <span className="text-gray-500">({item.sku})</span></td>
-                                        <td className="py-2">{item.quantity}</td>
-                                        <td className="py-2">{money(item.unitPrice)}</td>
-                                        <td className="py-2 text-right">{money(item.subtotal)}</td>
+                                    <tr key={`${item.productId}-${index}`}>
+                                        <td><span>{item.title}</span><small>{item.sku}</small></td>
+                                        <td>{item.quantity}</td>
+                                        <td>{money(item.unitPrice)}</td>
+                                        <td>{money(item.subtotal)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                        <div className="receipt-print-total">
+                            <p><span>Payment</span><strong>Cash</strong></p>
+                            <p className="receipt-grand-total"><span>Grand total</span><strong>{money(selected.totalAmount)}</strong></p>
+                        </div>
+                        <footer className="receipt-print-center">
+                            <p>Thank you for shopping with us!</p>
+                            <p>Please keep this receipt for your records.</p>
+                        </footer>
                     </div>
-                    <p className="mt-4 text-right text-lg font-bold">Total: {money(selected.totalAmount)}</p>
-                    <p className="mt-1 text-right text-xs text-gray-500">Payment method: Cash</p>
                 </section>
             )}
         </div>
