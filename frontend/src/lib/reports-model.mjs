@@ -4,6 +4,14 @@ export function validateSalesDateRange(startDate, endDate) {
         || !/^\\d{4}-\\d{2}-\\d{2}$/.test(endDate)) {
         return "Dates must use the YYYY-MM-DD format.";
     }
+    const isCalendarDate = (value) => {
+        const parsed = new Date(`${value}T00:00:00.000Z`);
+        return Number.isFinite(parsed.getTime())
+            && parsed.toISOString().slice(0, 10) === value;
+    };
+    if (!isCalendarDate(startDate) || !isCalendarDate(endDate)) {
+        return "Enter valid calendar dates.";
+    }
     if (startDate > endDate) return "Start date cannot be after the end date.";
     return "";
 }
