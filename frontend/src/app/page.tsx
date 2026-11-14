@@ -16,6 +16,7 @@ import PurchaseOrders from "../components/PurchaseOrders";
 import DashboardOverview from "../components/DashboardOverview";
 import { apiRequest, type AuthenticatedUser } from "../lib/api";
 import BackendReadiness from "../components/BackendReadiness";
+import { canAccessSection, canManageInventory, getVisibleSections } from "../lib/permissions.mjs";
 
 function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
@@ -78,12 +79,7 @@ function AppContent() {
         { name: "Settings", icon: "⚙" },
     ];
 
-    const visibleMenu = currentUser?.role === "ADMIN"
-        ? menu
-        : menu.filter((item) =>
-            ["Dashboard", "Books Inventory", "Sales / POS", "Sales History"]
-                .includes(item.name),
-        );
+    const visibleMenu = getVisibleSections(currentUser?.role ?? "STAFF", menu);
 
     function handleLogin(user: AuthenticatedUser) {
         setSetupRequired(false);
@@ -137,7 +133,7 @@ function AppContent() {
                         <button
                             key={item.name}
                             type="button"
-                            onClick={() => setActivePage(item.name)}
+                            onClick={() => { if (currentUser && canAccessSection(currentUser.role, item.name)) setActivePage(item.name); }}
                             aria-current={activePage === item.name ? "page" : undefined}
                             className={`flex min-w-0 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-xs transition sm:text-sm lg:gap-4 lg:px-4 ${
                                 activePage === item.name
@@ -190,7 +186,7 @@ function AppContent() {
                 {activePage === "Dashboard" ? (
                     <DashboardOverview />
                 ) : activePage === "Books Inventory" ? (
-                    <BooksInventory />
+                    <BooksInventory canManage={canManageInventory(currentUser.role)} />
                 ) : activePage === "Suppliers" ? (
                     <Suppliers />
                 ) : activePage === "School Orders" ? (
