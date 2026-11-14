@@ -23,6 +23,7 @@ function AppContent() {
     const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [setupRequired, setSetupRequired] = useState(false);
     const [activePage, setActivePage] = useState("Dashboard");
+    const [visitedPages, setVisitedPages] = useState<Set<string>>(() => new Set(["Dashboard"]));
     const pageHeadingRef = useRef<HTMLHeadingElement>(null);
     const previousPageRef = useRef(activePage);
 
@@ -81,9 +82,21 @@ function AppContent() {
 
     const visibleMenu = getVisibleSections(currentUser?.role ?? "STAFF", menu);
 
+    function navigateToPage(page: string) {
+        if (!canAccessSection(currentUser.role, page)) return;
+        setVisitedPages((previous) => {
+            if (previous.has(page)) return previous;
+            const next = new Set(previous);
+            next.add(page);
+            return next;
+        });
+        setActivePage(page);
+    }
+
     function handleLogin(user: AuthenticatedUser) {
         setSetupRequired(false);
         setCurrentUser(user);
+        setVisitedPages(new Set(["Dashboard"]));
         setActivePage("Dashboard");
     }
 
@@ -95,6 +108,7 @@ function AppContent() {
         } finally {
             setCurrentUser(null);
             setSetupRequired(false);
+            setVisitedPages(new Set(["Dashboard"]));
             setActivePage("Dashboard");
         }
     }
@@ -133,7 +147,7 @@ function AppContent() {
                         <button
                             key={item.name}
                             type="button"
-                            onClick={() => { if (currentUser && canAccessSection(currentUser.role, item.name)) setActivePage(item.name); }}
+                            onClick={() => navigateToPage(item.name)}
                             aria-current={activePage === item.name ? "page" : undefined}
                             className={`flex min-w-0 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-xs transition sm:text-sm lg:gap-4 lg:px-4 ${
                                 activePage === item.name
@@ -182,38 +196,69 @@ function AppContent() {
                     </div>
                 </header>
 
-                <ModuleErrorBoundary key={activePage} onReturnToDashboard={() => setActivePage("Dashboard")}>
-                {activePage === "Dashboard" ? (
-                    <DashboardOverview />
-                ) : activePage === "Books Inventory" ? (
-                    <BooksInventory canManage={canManageInventory(currentUser.role)} />
-                ) : activePage === "Suppliers" ? (
-                    <Suppliers />
-                ) : activePage === "School Orders" ? (
-                    <SchoolOrders />
-                ) : activePage === "Sales / POS" ? (
-                    <SalesPOS />
-                ) : activePage === "Sales History" ? (
-                    <SalesHistory />
-                ) : activePage === "Purchase Orders" ? (
-                    <PurchaseOrders />
-                ) : activePage === "Reports" ? (
-                    <Reports />
-                ) : activePage === "Settings" ? (
-                    <Settings />
-                ) : (
-
-                    <section className="rounded border border-gray-200 bg-white p-6">
-                        <h3 className="text-xl font-semibold">
-                            {activePage}
-                        </h3>
-
-                        <p className="mt-3 text-gray-500">
-                            This section is under development.
-                        </p>
-                    </section>
+                {visitedPages.has("Dashboard") && (
+                    <div hidden={activePage !== "Dashboard"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <DashboardOverview />
+                        </ModuleErrorBoundary>
+                    </div>
                 )}
-                </ModuleErrorBoundary>
+                {visitedPages.has("Books Inventory") && (
+                    <div hidden={activePage !== "Books Inventory"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <BooksInventory canManage={canManageInventory(currentUser.role)} />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Suppliers") && (
+                    <div hidden={activePage !== "Suppliers"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <Suppliers />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("School Orders") && (
+                    <div hidden={activePage !== "School Orders"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <SchoolOrders />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {visitedPages.has("Sales / POS") && (
+                    <div hidden={activePage !== "Sales / POS"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <SalesPOS />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {visitedPages.has("Sales History") && (
+                    <div hidden={activePage !== "Sales History"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <SalesHistory />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Purchase Orders") && (
+                    <div hidden={activePage !== "Purchase Orders"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <PurchaseOrders />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Reports") && (
+                    <div hidden={activePage !== "Reports"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <Reports />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
+                {currentUser.role === "ADMIN" && visitedPages.has("Settings") && (
+                    <div hidden={activePage !== "Settings"}>
+                        <ModuleErrorBoundary onReturnToDashboard={() => navigateToPage("Dashboard")}>
+                            <Settings />
+                        </ModuleErrorBoundary>
+                    </div>
+                )}
             </main>
         </div>
     );
