@@ -56,9 +56,6 @@ export default function SalesHistory() {
 
     useEffect(() => {
         let active = true;
-        setLoading(true);
-        setLoadError("");
-
         apiRequest<Sale[]>("/api/sales", { cache: "no-store" })
             .then((data) => {
                 if (!Array.isArray(data)) {
