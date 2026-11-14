@@ -8,6 +8,7 @@ declare global {
             platform: string;
             chooseBackupDestination: () => Promise<string | null>;
             chooseBackupFile: () => Promise<string | null>;
+            printReceipt: () => Promise<boolean>;
         };
     }
 }
