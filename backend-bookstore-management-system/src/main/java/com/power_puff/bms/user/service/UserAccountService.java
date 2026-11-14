@@ -62,6 +62,14 @@ public class UserAccountService {
     }
 
     @Transactional(readOnly = true)
+    public User findActiveUserByUsername(String username) {
+        return userRepository.findByUsernameIgnoreCase(username)
+                .filter(User::isActive)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Authenticated user account was not found or is inactive."));
+    }
+
+    @Transactional(readOnly = true)
     public List<UserResponse> listUsers() {
         return userRepository.findAllByOrderByUsernameAsc()
                 .stream().map(UserMapper::toResponse).toList();
