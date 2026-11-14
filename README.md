@@ -2,7 +2,7 @@
 
 A local-first bookstore management project for Qadri Book Store, Shahi Bazaar, Rohri. Developed for **Software Quality Engineering (CS304)** at Sukkur IBA University, Fall 2026.
 
-> **Current status:** Active development. The Spring Boot backend and Next.js frontend exist, but the Windows Electron desktop installer/runtime has **not** been implemented. Several frontend management screens are still being integrated with the backend. Do not use unverified screens for live store transactions.
+> **Current status:** Active development. The Spring Boot backend and Next.js frontend are implemented, and the core dashboard, inventory, POS, school-order, supplier/purchasing, reports, and account-administration screens are connected to the local API. The Windows Electron desktop installer/runtime and complete manual acceptance testing have **not** been implemented. Do not use this project for live store transactions until the remaining verification work is complete.
 
 ## What is in the repository?
 
@@ -13,10 +13,10 @@ A local-first bookstore management project for Qadri Book Store, Shahi Bazaar, R
 | Database | Local SQLite file stored in the Windows user application-data directory by default |
 | Authentication | Backend session-based Admin/Staff login and authorization; first Admin is created through a one-time local setup screen |
 | Desktop packaging | **Planned:** Electron/Windows packaging is not present |
-| Frontend tests | **Planned:** no frontend test script/test runner currently configured |
+| Frontend tests | Node.js built-in test runner via `npm test`; deterministic API/model/accessibility regression tests are present, while comprehensive React component tests remain in progress |
 | Backend tests | Maven Wrapper test suite |
 
-Backend endpoints cover products, sales, school orders, suppliers, purchase orders, reports, authentication, administration, and database backup/restore. **An endpoint existing does not mean its frontend screen is fully connected.** Verify each workflow against the backend before relying on it.
+Backend endpoints cover products, sales, school orders, suppliers, purchase orders, reports, authentication, administration, and database backup/restore. Core frontend modules are connected to their documented endpoints, but component-level regression coverage and manual acceptance remain in progress. See the [implementation alignment supplement](docs/design/IMPLEMENTATION-ALIGNMENT.md) for screen responsibilities, role access, and desktop-runtime status.
 
 ## Repository structure
 
@@ -30,7 +30,7 @@ bookstore-management-system/
 └── README.md
 ```
 
-The Electron runtime, cross-component test directory, and distributable Windows installer are **future work**, not existing repository folders.
+The Electron runtime and distributable Windows installer are **future work**, not existing repository folders. Frontend tests live under `frontend/tests/`.
 
 ## Run locally (Windows PowerShell)
 
@@ -74,16 +74,18 @@ Frontend (from `frontend/`):
 
 ```powershell
 npm ci
+npm test
 npm run lint
 npm run build
 ```
 
-The [frontend CI workflow](.github/workflows/frontend-ci.yml) runs npm install, lint and build using Node 22. There is currently **no** `npm test` script; frontend automated test coverage is tracked separately. Backend tests use isolated test databases, not the bookstore's production SQLite file.
+The [frontend CI workflow](.github/workflows/frontend-ci.yml) runs `npm ci`, `npm test`, lint, and production build using Node 22. The current frontend suite covers API transport, role policy, navigation state, report and Sales History models, backend readiness, and accessibility source contracts; full component workflow coverage remains in progress. Backend tests use isolated test databases, not the bookstore's production SQLite file.
 
 ## Documentation
 
 - [Software Requirements Specification (SRS)](docs/requirements/Bookstore-Management-System-SRS.pdf)
 - [Software Design Specification (SDS)](docs/design/Bookstore-Management-System-SDS.pdf)
+- [Implementation alignment supplement](docs/design/IMPLEMENTATION-ALIGNMENT.md) — current screen map, role access, and implemented/planned architecture
 - [Project proposal](docs/Project%20Proposal.pdf)
 - [SQE project requirements description](docs/SQE%20Project%20Requirements%20Description.pdf)
 - [Backend architecture, setup, and Admin bootstrap](backend-bookstore-management-system/README.md)

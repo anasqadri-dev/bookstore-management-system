@@ -134,3 +134,30 @@ test("requires a data field even for successful responses", async () => {
     await assert.rejects(client.request("/api/products"), (error) =>
         error.code === "MISSING_DATA");
 });
+
+test("notifies the app when an authenticated API request returns 401", async () => {
+    let expired = 0;
+    const client = createApiClient({
+        baseUrl: "http://127.0.0.1:8080",
+        onUnauthorized: () => { expired += 1; },
+        fetchImpl: async () => response(401, {
+            success: false, message: "unauthorized", data: null,
+        }),
+    });
+    await assert.rejects(client.request("/api/products"));
+    assert.equal(expired, 1);
+});
+
+test("does not treat invalid login or initial session lookup as an expired session", async () => {
+    let expired = 0;
+    const client = createApiClient({
+        baseUrl: "http://127.0.0.1:8080",
+        onUnauthorized: () => { expired += 1; },
+        fetchImpl: async () => response(401, {
+            success: false, message: "unauthorized", data: null,
+        }),
+    });
+    await assert.rejects(client.request("/api/auth/login", { method: "POST", body: "{}" }));
+    await assert.rejects(client.request("/api/auth/me"));
+    assert.equal(expired, 0);
+});

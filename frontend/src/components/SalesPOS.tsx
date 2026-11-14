@@ -32,6 +32,7 @@ export default function SalesPOS() {
     const [receiptLoading, setReceiptLoading] = useState(false);
     const [receiptError, setReceiptError] = useState("");
     const [savedSaleId, setSavedSaleId] = useState<number | null>(null);
+    const [paperWidth, setPaperWidth] = useState<"58" | "80" | "standard">("80");
 
     async function loadSavedReceipt(saleId: number) {
         setReceiptLoading(true);
@@ -208,27 +209,56 @@ export default function SalesPOS() {
                 )}
             </section>
             {receipt && <section className="rounded border border-green-200 bg-white p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="print:hidden mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h3 className="text-xl font-bold text-green-800">Saved receipt #{receipt.id}</h3>
-                        <p className="mt-1 text-sm text-gray-600">{new Date(receipt.saleDate).toLocaleString("en-PK")}</p>
+                        <p className="mt-1 text-sm text-gray-600">This receipt is loaded from the saved sale record.</p>
                     </div>
-                    <p className="text-lg font-bold">{money(receipt.totalAmount)}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <label htmlFor="receipt-paper-width" className="text-sm">Paper</label>
+                        <select id="receipt-paper-width" value={paperWidth}
+                            onChange={(event) => setPaperWidth(event.target.value as "58" | "80" | "standard")}
+                            className="rounded border border-gray-300 bg-white px-3 py-2 text-sm">
+                            <option value="58">58 mm thermal</option>
+                            <option value="80">80 mm thermal</option>
+                            <option value="standard">A4 / PDF</option>
+                        </select>
+                        <button type="button" onClick={() => window.print()}
+                            className="rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
+                            Print receipt
+                        </button>
+                    </div>
                 </div>
-                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-                    <p>Customer: {receipt.customerName || "Walk-in Customer"}</p>
-                    <p>Cashier: {receipt.cashierName}</p>
-                </div>
-                <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-100"><tr><th className="p-3">Book</th><th className="p-3">SKU</th><th className="p-3">Qty</th><th className="p-3">Unit price</th><th className="p-3">Subtotal</th></tr></thead>
+                <div className="receipt-print mx-auto bg-white text-black" data-paper-width={paperWidth}>
+                    <header className="receipt-print-center">
+                        <h1 className="receipt-store-name">Book Store</h1>
+                        <p>Sales receipt</p>
+                        <p>Receipt #{receipt.id}</p>
+                    </header>
+                    <div className="receipt-print-meta">
+                        <p>Date: {new Intl.DateTimeFormat("en-PK", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" }).format(new Date(receipt.saleDate))}</p>
+                        <p>Customer: {receipt.customerName || "Walk-in Customer"}</p>
+                        <p>Cashier: {receipt.cashierName}</p>
+                    </div>
+                    <table className="receipt-print-table">
+                        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
                         <tbody>{receipt.items.map((item) => (
-                            <tr key={item.productId} className="border-t">
-                                <td className="p-3">{item.title}</td><td className="p-3 font-mono text-xs">{item.sku}</td>
-                                <td className="p-3">{item.quantity}</td><td className="p-3">{money(item.unitPrice)}</td><td className="p-3">{money(item.subtotal)}</td>
+                            <tr key={item.productId}>
+                                <td><span>{item.title}</span><small>{item.sku}</small></td>
+                                <td>{item.quantity}</td>
+                                <td>{money(item.unitPrice)}</td>
+                                <td>{money(item.subtotal)}</td>
                             </tr>
                         ))}</tbody>
                     </table>
+                    <div className="receipt-print-total">
+                        <p><span>Payment</span><strong>Cash</strong></p>
+                        <p className="receipt-grand-total"><span>Grand total</span><strong>{money(receipt.totalAmount)}</strong></p>
+                    </div>
+                    <footer className="receipt-print-center">
+                        <p>Thank you for shopping with us!</p>
+                        <p>Please keep this receipt for your records.</p>
+                    </footer>
                 </div>
             </section>}
         </div>
