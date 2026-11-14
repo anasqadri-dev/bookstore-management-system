@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -157,6 +158,27 @@ class UserSessionRevocationIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/products").session(adminSession))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void failedDatabaseRestoreDoesNotInvalidateTheCurrentSession() throws Exception {
+        User admin = createUser(UserRole.ADMIN, "restore-failure-admin", ADMIN_PASSWORD);
+        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        String csrfToken = fetchCsrfToken(adminSession);
+        Path invalidBackup = Files.createFile(
+                temporaryDirectory.resolve("invalid-session-restore.db"));
+
+        mockMvc.perform(post("/api/backup/restore")
+                        .session(adminSession)
+                        .header("X-CSRF-TOKEN", csrfToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"backupPath":"%s"}
+                                """.formatted(invalidBackup)))
+                .andExpect(status().is4xxClientError());
+
+        mockMvc.perform(get("/api/auth/me").session(adminSession))
+                .andExpect(status().isOk());
     }
 
     private User createUser(UserRole role, String prefix, String password) {
