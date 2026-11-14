@@ -115,7 +115,7 @@ export default function SalesPOS() {
                     items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
                 }),
             });
-            if (!saved || !Number.isFinite(saved.totalAmount) || !Array.isArray(saved.items)) {
+            if (!saved || !Number.isSafeInteger(saved.id) || saved.id < 1 || !Number.isFinite(saved.totalAmount) || !Array.isArray(saved.items)) {
                 throw new Error("Sale response could not be verified. Check saved receipts before retrying.");
             }
             setCart([]);
