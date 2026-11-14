@@ -101,7 +101,7 @@ function AppContent() {
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
-            <aside className="bg-[#030712] p-6 text-white md:h-screen md:w-[320px] md:shrink-0 md:overflow-y-auto">
+            <aside className="bg-[#030712] p-6 text-white md:h-screen md:w-[220px] md:shrink-0 md:overflow-y-auto lg:w-[260px] xl:w-[300px]">
 
                 <h1 className="text-2xl font-bold">
                     Book Store
@@ -111,20 +111,20 @@ function AppContent() {
                     Management System
                 </p>
 
-                <nav className="mt-10 space-y-2">
+                <nav className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 md:mt-10 md:grid-cols-1">
                     {visibleMenu.map((item) => (
                         <button
                             key={item.name}
                             type="button"
                             onClick={() => setActivePage(item.name)}
                             aria-current={activePage === item.name ? "page" : undefined}
-                            className={`flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm transition ${
+                            className={`flex min-w-0 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-xs transition sm:text-sm lg:gap-4 lg:px-4 ${
                                 activePage === item.name
                                     ? "bg-slate-700 text-white"
                                     : "text-gray-300 hover:bg-slate-800"
                             }`}
                         >
-                            <span className="w-5 text-xl">
+                            <span className="w-5 shrink-0 text-xl">
                                 {item.icon}
                             </span>
                             {item.name}
@@ -146,12 +146,12 @@ function AppContent() {
             </aside>
 
             {/* Main Content */}
-            <main className="min-w-0 flex-1 p-6 md:h-screen md:overflow-y-auto md:p-10">
+            <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10">
 
                 {/* Header */}
-                <header className="mb-10 flex items-center justify-between gap-4">
+                <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h2 ref={pageHeadingRef} tabIndex={-1} className="text-3xl font-bold">
+                        <h2 ref={pageHeadingRef} tabIndex={-1} className="text-2xl font-bold sm:text-3xl">
                             {activePage}
                         </h2>
 
@@ -160,7 +160,7 @@ function AppContent() {
                         </p>
                     </div>
 
-                    <div className="shrink-0 text-sm">
+                    <div className="min-w-0 break-words text-sm">
                         ♙ &nbsp; {currentUser.fullName} ({currentUser.role})
                     </div>
                 </header>
