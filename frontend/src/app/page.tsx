@@ -122,7 +122,7 @@ function AppContent() {
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
-            <aside className="bg-[#030712] p-6 text-white md:h-screen md:w-[220px] md:shrink-0 md:overflow-y-auto lg:w-[260px] xl:w-[300px]">
+            <aside className="print:hidden bg-[#030712] p-6 text-white md:h-screen md:w-[220px] md:shrink-0 md:overflow-y-auto lg:w-[260px] xl:w-[300px]">
 
                 <h1 className="text-2xl font-bold">
                     Book Store
@@ -167,10 +167,10 @@ function AppContent() {
             </aside>
 
             {/* Main Content */}
-            <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10">
+            <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10 print:h-auto print:overflow-visible print:p-0">
 
                 {/* Header */}
-                <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+                <header className="print:hidden mb-8 flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 ref={pageHeadingRef} tabIndex={-1} className="text-2xl font-bold sm:text-3xl">
                             {activePage}
