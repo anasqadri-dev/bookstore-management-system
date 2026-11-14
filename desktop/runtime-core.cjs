@@ -17,11 +17,10 @@ function isTrustedNavigation(target, localOrigin) {
     }
 }
 
-function buildBackendEnvironment(baseEnvironment, databasePath, frontendOrigin) {
+function buildBackendEnvironment(baseEnvironment, databasePath) {
     return {
         ...baseEnvironment,
         BMS_DATABASE_PATH: databasePath,
-        BMS_CORS_ALLOWED_ORIGINS: frontendOrigin,
         BMS_BOOTSTRAP_ADMIN_ENABLED: "false",
     };
 }
