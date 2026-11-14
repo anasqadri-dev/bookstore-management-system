@@ -1,7 +1,8 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, session } = require("electron");
 const { spawn } = require("node:child_process");
 const http = require("node:http");
 const path = require("node:path");
+const fs = require("node:fs");
 const {
     isBackendHealthReady,
     isTrustedNavigation,
@@ -82,6 +83,7 @@ function startBackend() {
         : path.resolve(__dirname, "..", "backend-bookstore-management-system", "target",
             "backend-bookstore-management-system-0.0.1-SNAPSHOT.jar");
     const databasePath = path.join(app.getPath("userData"), "bookstore.db");
+    fs.mkdirSync(path.dirname(databasePath), { recursive: true });
     const env = buildBackendEnvironment(process.env, databasePath, LOCAL_ORIGIN);
 
     backendProcess = spawn(javaExecutable(), [
@@ -153,6 +155,19 @@ async function startApplication() {
 }
 
 function createMainWindow() {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                "Content-Security-Policy": [
+                    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:8080; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+                ],
+                "X-Content-Type-Options": ["nosniff"],
+                "Referrer-Policy": ["no-referrer"],
+            },
+        });
+    });
+
     mainWindow = new BrowserWindow({
         width: 1440,
         height: 900,
@@ -171,6 +186,7 @@ function createMainWindow() {
     });
 
     mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    mainWindow.webContents.on("will-attach-webview", (event) => event.preventDefault());
     mainWindow.webContents.on("will-navigate", (event, targetUrl) => {
         if (!isTrustedNavigation(targetUrl, LOCAL_ORIGIN)) event.preventDefault();
     });
