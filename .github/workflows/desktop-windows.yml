@@ -43,16 +43,17 @@ jobs:
           cache: maven
           cache-dependency-path: backend-bookstore-management-system/pom.xml
 
-      - name: Verify JDK modules required for the bundled runtime
+      - name: Locate JDK module archive directory
+        id: jdk-modules
         shell: pwsh
         run: |
-          $jmods = Join-Path $env:JAVA_HOME "jmods"
-          $required = @("java.base.jmod", "java.desktop.jmod", "java.logging.jmod", "java.sql.jmod")
-          foreach ($module in $required) {
-            if (-not (Test-Path (Join-Path $jmods $module))) {
-              throw "Required JDK module is missing: $module (looked in $jmods)"
-            }
+          $base = Get-ChildItem -Path $env:JAVA_HOME -Filter "java.base.jmod" -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $base) {
+            throw "The configured JDK does not contain java.base.jmod; install a full JDK distribution with jmods."
           }
+          $modulePath = $base.DirectoryName
+          "module_path=$modulePath" >> $env:GITHUB_OUTPUT
+          Write-Host "Using JDK module archive directory: $modulePath"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -68,10 +69,11 @@ jobs:
 
       - name: Create bundled Java runtime
         shell: pwsh
+        env:
+          JDK_MODULE_PATH: ${{ steps.jdk-modules.outputs.module_path }}
         run: |
-          $jmods = Join-Path $env:JAVA_HOME "jmods"
           $modules = "java.base,java.compiler,java.desktop,java.instrument,java.logging,java.management,java.naming,java.net.http,java.prefs,java.rmi,java.scripting,java.security.jgss,java.sql,java.transaction.xa,java.xml,jdk.crypto.ec,jdk.unsupported"
-          jlink --module-path $jmods --add-modules $modules --strip-debug --no-man-pages --no-header-files --output desktop/runtime
+          jlink --module-path "$env:JDK_MODULE_PATH" --add-modules $modules --strip-debug --no-man-pages --no-header-files --output desktop/runtime
           if ($LASTEXITCODE -ne 0) { throw "jlink failed with exit code $LASTEXITCODE" }
 
       - name: Install pinned Electron packaging tools
