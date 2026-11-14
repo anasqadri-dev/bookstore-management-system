@@ -17,6 +17,7 @@ import DashboardOverview from "../components/DashboardOverview";
 import { apiRequest, type AuthenticatedUser } from "../lib/api";
 import BackendReadiness from "../components/BackendReadiness";
 import { canAccessSection, canManageInventory, getVisibleSections } from "../lib/permissions.mjs";
+import { rememberVisitedPage } from "../lib/navigation-state.mjs";
 
 function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
@@ -84,12 +85,7 @@ function AppContent() {
 
     function navigateToPage(page: string) {
         if (!currentUser || !canAccessSection(currentUser.role, page)) return;
-        setVisitedPages((previous) => {
-            if (previous.has(page)) return previous;
-            const next = new Set(previous);
-            next.add(page);
-            return next;
-        });
+        setVisitedPages((previous) => rememberVisitedPage(previous, page));
         setActivePage(page);
     }
 
