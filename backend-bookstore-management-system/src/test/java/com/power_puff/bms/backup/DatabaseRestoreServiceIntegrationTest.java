@@ -4,11 +4,16 @@ import com.power_puff.bms.backup.dto.DatabaseBackupResult;
 import com.power_puff.bms.backup.dto.DatabaseRestoreResult;
 import com.power_puff.bms.backup.service.DatabaseBackupService;
 import com.power_puff.bms.backup.service.DatabaseRestoreService;
+import com.power_puff.bms.security.AdminProvisioningService;
+import com.power_puff.bms.user.entity.User;
+import com.power_puff.bms.user.entity.UserRole;
+import com.power_puff.bms.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.nio.file.Files;
@@ -34,6 +39,15 @@ class DatabaseRestoreServiceIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AdminProvisioningService adminProvisioningService;
 
     @TempDir
     Path temporaryDirectory;
@@ -63,6 +77,34 @@ class DatabaseRestoreServiceIntegrationTest {
         assertNotNull(restored.restoredAt());
 
         jdbcTemplate.update("DELETE FROM suppliers WHERE name = ?", existingSupplier);
+    }
+
+    @Test
+    void restoresLegacyBackupAndRecreatesTheInternalFirstRunMarker() throws Exception {
+        userRepository.saveAndFlush(new User(
+                "restore-owner", passwordEncoder.encode("RestoreOwnerPass123"),
+                "Restore Owner", UserRole.ADMIN));
+
+        Path backupPath = temporaryDirectory.resolve("legacy-backup.db");
+        DatabaseBackupResult backup = backupService.createBackup(backupPath.toString());
+
+        // Simulate a valid backup produced before the first-run marker existed.
+        try (var connection = java.sql.DriverManager.getConnection(
+                     "jdbc:sqlite:" + backupPath);
+             var statement = connection.createStatement()) {
+            statement.execute("DROP TABLE admin_bootstrap_state");
+        }
+
+        restoreService.restore(backup.filePath());
+
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sqlite_master "
+                        + "WHERE type = 'table' AND name = 'admin_bootstrap_state'",
+                Integer.class));
+        assertEquals(1, userRepository.count());
+        assertTrue(!adminProvisioningService.isSetupRequired());
+
+        userRepository.deleteAll();
     }
 
     @Test

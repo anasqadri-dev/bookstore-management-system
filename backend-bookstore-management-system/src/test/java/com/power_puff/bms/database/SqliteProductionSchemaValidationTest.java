@@ -27,9 +27,10 @@ class SqliteProductionSchemaValidationTest {
                 WHERE type = 'table'
                   AND name NOT LIKE 'sqlite_%'
                   AND name <> 'schema_migrations'
+                  AND name <> 'admin_bootstrap_state'
                 """, Integer.class));
 
-        assertEquals(4, jdbcTemplate.queryForObject(
+        assertEquals(5, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM schema_migrations", Integer.class));
 
         assertEquals(1, jdbcTemplate.queryForObject(
