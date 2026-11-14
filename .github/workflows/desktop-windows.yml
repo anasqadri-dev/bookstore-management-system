@@ -52,11 +52,11 @@ jobs:
         working-directory: frontend
 
       - name: Build and test Spring Boot backend
-        run: .\mvnw.cmd -B clean package
+        run: .\\mvnw.cmd -B clean package
         working-directory: backend-bookstore-management-system
 
       - name: Create bundled Java runtime
-        run: jlink --add-modules ALL-MODULE-PATH --strip-debug --no-man-pages --no-header-files --output desktop/runtime
+        run: jlink --module-path "$env:JAVA_HOME/jmods" --add-modules ALL-MODULE-PATH --strip-debug --no-man-pages --no-header-files --output desktop/runtime
 
       - name: Install pinned Electron packaging tools
         run: npm install --no-audit --no-fund
