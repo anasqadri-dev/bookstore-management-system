@@ -30,3 +30,19 @@ test("main process validates the renderer origin before opening native file dial
     assert.ok(main.includes('isTrustedNavigation(event.senderFrame?.url ?? "", LOCAL_ORIGIN)'));
     assert.ok(main.includes('extensions: ["db", "sqlite", "sqlite3"]'));
 });
+
+test("POS and saved Sales History receipts expose native print-dialog layouts", async () => {
+    const pos = await read("../src/components/SalesPOS.tsx");
+    const history = await read("../src/components/SalesHistory.tsx");
+    const styles = await read("../src/app/globals.css");
+    for (const source of [pos, history]) {
+        assert.ok(source.includes("window.print()"));
+        assert.ok(source.includes('data-paper-width={paperWidth}'));
+        assert.ok(source.includes('value="58"') || source.includes('value="80"'));
+        assert.ok(source.includes('value="standard"'));
+        assert.ok(source.includes('className="receipt-print'));
+    }
+    assert.ok(styles.includes('.receipt-print[data-paper-width="58"]'));
+    assert.ok(styles.includes('.receipt-print[data-paper-width="80"]'));
+    assert.ok(styles.includes('.receipt-print[data-paper-width="standard"]'));
+});
