@@ -76,7 +76,7 @@ export default function Settings() {
 
     async function createStaff(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (saving) return;
+        if (saving || backupBusy) return;
         const validation = validateStaffDraft(draft);
         if (validation) {
             setCreateError(validation);
@@ -134,7 +134,7 @@ export default function Settings() {
     }
 
     async function deactivateStaff(user: ManagedUser) {
-        if (saving || !user.active) return;
+        if (saving || backupBusy || !user.active) return;
         if (!window.confirm(`Deactivate Staff account ${user.username}? The account will be retained for historical records.`)) return;
         setSaving(true);
         setNotice("");
@@ -254,7 +254,7 @@ export default function Settings() {
                         {createError && <p role="alert" className="text-sm text-red-700">{createError}</p>}
                         <div className="grid gap-4 sm:grid-cols-3">
                             <div><label htmlFor="staff-username" className="mb-1 block text-sm font-medium">Username</label>
-                                <input id="staff-username" autoComplete="off" required maxLength={100} value={draft.username} disabled={saving}
+                                <input id="staff-username" autoComplete="off" required maxLength={100} value={draft.username} disabled={saving || backupBusy}
                                     onChange={(event) => setDraft({ ...draft, username: event.target.value })} className={fieldClass} /></div>
                             <div><label htmlFor="staff-full-name" className="mb-1 block text-sm font-medium">Full name</label>
                                 <input id="staff-full-name" required maxLength={150} value={draft.fullName} disabled={saving}
@@ -329,7 +329,7 @@ export default function Settings() {
                 </p>
                 {backupError && <p role="alert" className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{backupError}</p>}
                 <div className="mt-4 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => void createDatabaseBackup()} disabled={backupBusy}
+                    <button type="button" onClick={() => void createDatabaseBackup()} disabled={backupBusy || saving}
                         className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
                         {backupBusy ? "Working..." : "Create database backup"}
                     </button>
