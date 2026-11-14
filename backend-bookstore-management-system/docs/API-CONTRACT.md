@@ -2,7 +2,7 @@
 
 ## General
 
-Base URL: `http://localhost:8080`
+Base URL: `http://127.0.0.1:8080`
 
 JSON responses use the envelope:
 
