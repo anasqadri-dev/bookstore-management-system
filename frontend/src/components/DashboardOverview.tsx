@@ -78,16 +78,16 @@ export default function DashboardOverview() {
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 {cards.map((card) => (
-                    <div key={card.title} className="rounded border border-gray-200 bg-white p-6">
+                    <div key={card.title} className="min-w-0 rounded border border-gray-200 bg-white p-4 sm:p-6">
                         <p className="text-gray-500">{card.title}</p>
-                        <h3 className="mt-5 text-3xl font-bold">{card.value}</h3>
+                        <h3 className="mt-4 break-words text-2xl font-bold sm:mt-5 sm:text-3xl">{card.value}</h3>
                     </div>
                 ))}
             </div>
             <section className="mt-8 rounded border border-gray-200 bg-white p-6">
                 <h3 className="mb-6 text-2xl font-semibold">Recent Sales</h3>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full min-w-[600px] text-left text-sm">
                         <thead className="bg-gray-100">
                             <tr><th className="p-4">Sale Date</th><th className="p-4">Customer</th><th className="p-4">Cashier</th><th className="p-4">Amount</th></tr>
                         </thead>

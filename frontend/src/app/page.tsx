@@ -148,9 +148,9 @@ function AppContent() {
         <div className="min-h-screen bg-[#f3f4f6] text-[#111827] md:flex md:h-screen md:overflow-hidden">
 
             {/* Sidebar */}
-            <aside className="print:hidden bg-[#030712] p-6 text-white md:h-screen md:w-[220px] md:shrink-0 md:overflow-y-auto lg:w-[260px] xl:w-[300px]">
+            <aside className="print:hidden bg-[#030712] p-4 text-white md:h-screen md:w-[200px] md:shrink-0 md:overflow-x-hidden md:overflow-y-auto lg:w-[220px] lg:p-5 xl:w-[260px] xl:p-6">
 
-                <h1 className="text-2xl font-bold">
+                <h1 className="text-xl font-bold xl:text-2xl">
                     Book Store
                 </h1>
 
@@ -158,20 +158,20 @@ function AppContent() {
                     Management System
                 </p>
 
-                <nav className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 md:mt-10 md:grid-cols-1">
+                <nav className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:mt-8 md:grid-cols-1">
                     {visibleMenu.map((item) => (
                         <button
                             key={item.name}
                             type="button"
                             onClick={() => navigateToPage(item.name)}
                             aria-current={activePage === item.name ? "page" : undefined}
-                            className={`flex min-w-0 w-full items-center gap-2 rounded-md px-3 py-3 text-left text-xs transition sm:text-sm lg:gap-4 lg:px-4 ${
+                            className={`flex min-w-0 w-full items-center gap-2 rounded-md px-2 py-3 text-left text-xs leading-tight transition sm:px-3 sm:text-sm xl:gap-3 xl:px-4 ${
                                 activePage === item.name
                                     ? "bg-slate-700 text-white"
                                     : "text-gray-300 hover:bg-slate-800"
                             }`}
                         >
-                            <span className="w-5 shrink-0 text-xl">
+                            <span className="w-5 shrink-0 text-lg xl:text-xl">
                                 {item.icon}
                             </span>
                             {item.name}
@@ -184,7 +184,7 @@ function AppContent() {
                     <button
                         type="button"
                         onClick={() => void handleLogout()}
-                        className="flex w-full items-center gap-4 rounded-md px-5 py-4 text-left text-sm text-red-300 transition hover:bg-slate-800"
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-4 text-left text-sm text-red-300 transition hover:bg-slate-800"
                     >
                         <span className="w-5 text-xl">⇥</span>
                         Logout
@@ -193,10 +193,10 @@ function AppContent() {
             </aside>
 
             {/* Main Content */}
-            <main id="main-content" className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-10 print:h-auto print:overflow-visible print:p-0">
+            <main id="main-content" className="box-border w-full min-w-0 max-w-full flex-1 overflow-x-hidden p-4 sm:p-6 md:h-screen md:overflow-y-auto lg:p-7 xl:p-10 print:h-auto print:overflow-visible print:p-0">
 
                 {/* Header */}
-                <header className="print:hidden mb-8 flex flex-wrap items-center justify-between gap-4">
+                <header className="print:hidden mb-8 flex min-w-0 flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 ref={pageHeadingRef} tabIndex={-1} className="text-2xl font-bold sm:text-3xl">
                             {activePage}
@@ -207,7 +207,7 @@ function AppContent() {
                         </p>
                     </div>
 
-                    <div className="min-w-0 break-words text-sm">
+                    <div className="min-w-0 max-w-full break-words text-sm">
                         ♙ &nbsp; {currentUser.fullName} ({currentUser.role})
                     </div>
                 </header>
