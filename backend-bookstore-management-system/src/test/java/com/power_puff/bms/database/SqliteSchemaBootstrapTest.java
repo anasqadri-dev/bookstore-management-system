@@ -44,6 +44,7 @@ class SqliteSchemaBootstrapTest {
                      WHERE type = 'table'
                        AND name NOT LIKE 'sqlite_%'
                        AND name <> 'schema_migrations'
+                       AND name <> 'admin_bootstrap_state'
                      """)) {
             assertTrue(tables.next());
             assertEquals(11, tables.getInt(1));
