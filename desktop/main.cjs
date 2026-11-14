@@ -22,6 +22,7 @@ let frontendProcess = null;
 let mainWindow = null;
 let shutdownPromise = null;
 let allowQuit = false;
+let backupDialogsRegistered = false;
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 if (!singleInstanceLock) {
@@ -178,6 +179,8 @@ async function startApplication() {
 }
 
 function registerBackupDialogs() {
+    if (backupDialogsRegistered) return;
+    backupDialogsRegistered = true;
     ipcMain.handle("bms:choose-backup-destination", async (event) => {
         if (!isTrustedNavigation(event.senderFrame?.url ?? "", LOCAL_ORIGIN)) {
             throw new Error("Untrusted renderer.");
