@@ -45,17 +45,43 @@ The API listens on loopback port 8080 by default.
 Tests use an isolated SQLite test configuration. They must not write to the shop database.
 
 ## Initial Admin account provisioning
-Admin bootstrap is disabled by default. For a fresh development database only, explicitly supply unique local credentials in the same PowerShell session:
+
+A fresh installation is initialized by the bookstore owner through the local first-run setup screen; no SQLite editing, shared default password, or developer shell is required.
+
+1. Start the backend from this directory:
+
+   ```powershell
+   .\\mvnw.cmd spring-boot:run
+   ```
+
+2. Start the frontend in a second terminal from the repository root:
+
+   ```powershell
+   cd frontend
+   npm ci
+   npm run dev
+   ```
+
+3. Open `http://localhost:3000`. When the database has no user accounts and has not been initialized, the dashboard displays the **Create your Admin account** screen. Enter the owner's name, a username, and a unique password, then confirm the password.
+4. After the account is created, sign in through the normal login screen.
+
+The setup API is protected by the same session-bound CSRF mechanism as other state-changing requests. The API binds to loopback (`127.0.0.1`) and is not intended to be exposed to the shop LAN. Passwords must contain 8–72 UTF-8 bytes and are BCrypt-hashed before persistence; plaintext passwords are not stored or logged.
+
+The one-time marker and Admin row are committed in a single SQLite transaction. A singleton database constraint serializes concurrent initialization attempts: one request can succeed and subsequent requests receive HTTP 409. Any failure before commit rolls back both records, so the owner can safely retry after the backend is available again. If setup is unavailable because an account already exists, use the normal login or documented account recovery process; do not delete database rows or the marker manually.
+
+For interrupted setup, first restart the backend and revisit the local dashboard. A failed provisioning transaction leaves setup available. If the SQLite file or schema is damaged, stop the backend, preserve a copy of the current database, and follow [the database backup and restore guide](docs/DATABASE-BACKUP-RESTORE.md) using a verified backup. Do not overwrite a newer database with an older backup without following the migration/recovery procedure.
+
+The environment-variable bootstrap remains available only as an explicit operator/development fallback. It is disabled by default; never enable it with a committed or shared password:
 
 ```powershell
 $env:BMS_BOOTSTRAP_ADMIN_ENABLED = "true"
 $env:BMS_BOOTSTRAP_ADMIN_USERNAME = "admin"
-$env:BMS_BOOTSTRAP_ADMIN_PASSWORD = "replace-with-a-strong-local-password"
+$env:BMS_BOOTSTRAP_ADMIN_PASSWORD = "use-a-unique-strong-local-password"
 $env:BMS_BOOTSTRAP_ADMIN_FULL_NAME = "Store Administrator"
-.\mvnw.cmd spring-boot:run
+.\\mvnw.cmd spring-boot:run
 ```
 
-The bootstrap creates an Admin only when the users table is empty. The password is BCrypt-hashed before persistence and is never logged. After provisioning, remove the bootstrap variables or set `BMS_BOOTSTRAP_ADMIN_ENABLED` to `false`. Never commit a real password or ship a default credential. This is an operator-assisted bootstrap, not yet the owner-facing first-run setup wizard requested in issue #287.
+Remove the variables after use. The operator bootstrap uses the same atomic provisioning service and cannot replace an existing account.
 
 ## API conventions
 Successful and failed controller responses use `ApiResponse<T>` with `success`, `message`, and `data` fields. Validation errors return HTTP 400, missing resources 404, data conflicts 409, unauthenticated requests 401, and forbidden requests 403.
