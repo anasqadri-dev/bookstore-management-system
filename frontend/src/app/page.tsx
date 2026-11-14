@@ -23,6 +23,7 @@ function AppContent() {
     const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
     const [isSessionLoading, setIsSessionLoading] = useState(true);
     const [setupRequired, setSetupRequired] = useState(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
     const [activePage, setActivePage] = useState("Dashboard");
     const [visitedPages, setVisitedPages] = useState<Set<string>>(() => new Set(["Dashboard"]));
     const pageHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -34,6 +35,18 @@ function AppContent() {
             pageHeadingRef.current?.focus();
         }
     }, [activePage]);
+
+    useEffect(() => {
+        const handleSessionExpired = () => {
+            setCurrentUser(null);
+            setSetupRequired(false);
+            setSessionExpired(true);
+            setVisitedPages(new Set(["Dashboard"]));
+            setActivePage("Dashboard");
+        };
+        window.addEventListener("bms:session-expired", handleSessionExpired);
+        return () => window.removeEventListener("bms:session-expired", handleSessionExpired);
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -90,6 +103,7 @@ function AppContent() {
     }
 
     function handleLogin(user: AuthenticatedUser) {
+        setSessionExpired(false);
         setSetupRequired(false);
         setCurrentUser(user);
         setVisitedPages(new Set(["Dashboard"]));
@@ -104,6 +118,7 @@ function AppContent() {
         } finally {
             setCurrentUser(null);
             setSetupRequired(false);
+            setSessionExpired(false);
             setVisitedPages(new Set(["Dashboard"]));
             setActivePage("Dashboard");
         }
@@ -121,7 +136,7 @@ function AppContent() {
     if (!currentUser) {
         return setupRequired
             ? <AdminSetup onComplete={() => setSetupRequired(false)} />
-            : <Login onLogin={handleLogin} />;
+            : <Login onLogin={handleLogin} notice={sessionExpired ? "Your session has expired. Please sign in again." : ""} />;
     }
 
     return (

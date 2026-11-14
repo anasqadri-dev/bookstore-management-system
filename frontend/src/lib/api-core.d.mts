@@ -6,6 +6,7 @@ export declare class ApiError extends Error {
 export declare function createApiClient(options: {
     baseUrl: string;
     fetchImpl?: typeof fetch;
+    onUnauthorized?: () => void;
 }): {
     request<T>(path: string, options?: RequestInit): Promise<T>;
 };

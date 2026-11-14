@@ -5,9 +5,10 @@ import { apiRequest, type AuthenticatedUser } from "../lib/api";
 
 type LoginProps = {
     onLogin: (user: AuthenticatedUser) => void;
+    notice?: string;
 };
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login({ onLogin, notice = "" }: LoginProps) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -73,6 +74,7 @@ export default function Login({ onLogin }: LoginProps) {
                             Sign in with your bookstore account to continue.
                         </p>
 
+                        {notice && <p role="status" className="mt-5 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{notice}</p>}
                         <form onSubmit={(event) => void handleLogin(event)} className="mt-8 space-y-5" aria-busy={isSubmitting}>
                             <div>
                                 <label htmlFor="login-username" className="block text-sm font-medium text-gray-700">Username</label>
