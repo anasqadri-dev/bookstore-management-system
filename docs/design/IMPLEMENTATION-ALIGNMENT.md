@@ -40,7 +40,7 @@ credentials + CSRF + envelope handling]
 
 The backend follows the documented Controller → Service → Repository → Entity/Database separation. The frontend currently runs as a Next.js web application and talks to the local loopback Spring Boot API.
 
-**Electron is planned, not implemented.** There is no checked-in Electron main process, preload bridge, managed backend child-process lifecycle, installer configuration, or reproducible Windows installer workflow in the current repository. The desktop runtime must not be represented as a delivered component until issue #279 is completed and verified.
+**Electron runtime scaffolding is now present, but release acceptance is not complete.** The repository includes an Electron main process, a minimal isolated preload, managed backend and Next.js child-process startup, local health polling, renderer-origin restrictions, shutdown handling, a bundled-JRE packaging configuration, and a Windows CI installer workflow. The generated installer has not yet passed a clean Windows 10/11 installation, offline, restart/persistence, shutdown/orphan-process, upgrade, and uninstall test. Do not describe the desktop application as release-delivered until those checks pass.
 
 ## 4. Repository structure snapshot
 
@@ -49,7 +49,7 @@ The backend follows the documented Controller → Service → Repository → Ent
 - `docs/requirements/`: approved SRS PDF.
 - `docs/design/`: SDS PDF and this implementation-alignment supplement.
 - `.github/workflows/`: CI workflows.
-- `desktop/`: not present; planned work under issue #279.
+- `desktop/`: Electron main/preload process, runtime lifecycle helpers/tests, NSIS packaging configuration, and Windows installer workflow; final installer and clean-machine acceptance remain pending.
 
 ## 5. Validation and release caveats
 
