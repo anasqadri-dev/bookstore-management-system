@@ -50,7 +50,7 @@ async function readEnvelope(response, operation) {
 }
 
 export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch }) {
-    const normalizedBaseUrl = baseUrl.replace(/\\/+$/, "");
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
 
     async function request(path, options = {}) {
         const method = (options.method ?? "GET").toUpperCase();
