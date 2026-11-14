@@ -20,7 +20,20 @@ spring:
         format_sql: true
 
 server:
+  # The bookstore API is local-only. Electron and the local Next.js UI connect
+  # through loopback; do not expose the API to the shop LAN by default.
+  address: 127.0.0.1
   port: 8080
+  servlet:
+    session:
+      # Idle expiry is configurable for managed shop deployments.
+      timeout: ${BMS_SESSION_TIMEOUT:30m}
+      cookie:
+        http-only: true
+        same-site: lax
+        # The packaged local API uses HTTP on loopback, not public HTTPS.
+        # Revisit this together with the desktop transport if that changes.
+        secure: false
 
 logging:
   level:
@@ -34,8 +47,11 @@ bms:
 
   business-time-zone: Asia/Karachi
 
+  # Bootstrap is deliberately off by default. An operator must explicitly
+  # enable it and supply unique credentials for a fresh, local development DB.
+  # Never ship or commit a default Admin password.
   bootstrap-admin:
-    enabled: true
-    username: admin
-    password: admin
-    full-name: Store Administrator
+    enabled: ${BMS_BOOTSTRAP_ADMIN_ENABLED:false}
+    username: ${BMS_BOOTSTRAP_ADMIN_USERNAME:}
+    password: ${BMS_BOOTSTRAP_ADMIN_PASSWORD:}
+    full-name: ${BMS_BOOTSTRAP_ADMIN_FULL_NAME:Store Administrator}
