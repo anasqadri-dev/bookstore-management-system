@@ -22,7 +22,6 @@ export default function BooksInventory() {
     const [search, setSearch] = useState("");
     const [showLowStock, setShowLowStock] = useState(false);
     const loadBooks = useCallback(async () => {
-        setLoading(true);
         try {
             const path = showLowStock
                 ? "/api/products/low-stock"
@@ -95,7 +94,6 @@ export default function BooksInventory() {
         setBusy(true);
         setFormError("");
         try {
-            const existing = books.find((book) => book.id === editId);
             await apiRequest(editId !== null ? `/api/products/${editId}` : "/api/products", {
                 method: editId !== null ? "PUT" : "POST",
                 body: JSON.stringify({
@@ -171,11 +169,11 @@ export default function BooksInventory() {
             <div className="mb-4 flex flex-wrap gap-3">
                 <label className="sr-only" htmlFor="inventory-search">Search books by title or SKU</label>
                 <input id="inventory-search" type="search" value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => { setLoading(true); setSearch(event.target.value); }}
                     placeholder="Search title or SKU..."
                     className="min-w-0 flex-1 rounded border border-gray-300 bg-white px-3 py-2" />
                 <button type="button" aria-pressed={showLowStock}
-                    onClick={() => setShowLowStock((value) => !value)}
+                    onClick={() => { setLoading(true); setShowLowStock((value) => !value); }}
                     className={`rounded border px-4 py-2 text-sm ${showLowStock ? "border-amber-500 bg-amber-50 text-amber-900" : "bg-white"}`}>
                     {showLowStock ? "Show all books" : "Low stock only"}
                 </button>
