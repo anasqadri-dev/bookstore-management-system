@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -35,6 +36,12 @@ public class SaleController {
         SaleReceiptResponse receipt = saleService.create(request, principal.getName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Sale completed successfully.", receipt));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<SaleReceiptResponse>>> getSalesHistory() {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Sales history retrieved successfully.", saleService.getSalesHistory()));
     }
 
     @GetMapping("/{saleId}/receipt")
