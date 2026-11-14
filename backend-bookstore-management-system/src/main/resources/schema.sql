@@ -12,6 +12,12 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP NOT NULL
 );
 
+-- Singleton marker inserted atomically with the first Admin account.
+CREATE TABLE IF NOT EXISTS admin_bootstrap_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    completed_at TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sku VARCHAR(100) NOT NULL UNIQUE,
