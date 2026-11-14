@@ -73,6 +73,7 @@ public class DatabaseRestoreService {
             rollbackRequired = true;
             try {
                 executeRestore(connection, backupPath);
+                ensureAdminBootstrapStateTable(connection);
                 verifyConnectionDatabase(connection);
                 rollbackRequired = false;
 
@@ -150,16 +151,17 @@ public class DatabaseRestoreService {
             }
         }
 
-        // Older valid backups predate schema versioning. New backups also
-        // contain the internal migration-history table; both formats are valid.
-        Set<String> expectedTablesWithHistory = new HashSet<>(REQUIRED_TABLES);
-        expectedTablesWithHistory.add("schema_migrations");
-        if (!REQUIRED_TABLES.equals(actualTables)
-                && !expectedTablesWithHistory.equals(actualTables)) {
+        // Older valid backups may predate either internal metadata table.
+        // They are accepted, and the bootstrap marker is recreated after restore.
+        Set<String> supportedTables = new HashSet<>(REQUIRED_TABLES);
+        Set<String> normalizedTables = new HashSet<>(actualTables);
+        normalizedTables.remove("schema_migrations");
+        normalizedTables.remove("admin_bootstrap_state");
+        if (!REQUIRED_TABLES.equals(normalizedTables)) {
             throw new SQLException(
                     "Backup schema does not match the supported Bookstore database. "
                             + "Expected business tables " + REQUIRED_TABLES
-                            + " with optional schema_migrations metadata, but found "
+                            + " with optional internal metadata, but found "
                             + actualTables + ".");
         }
 
@@ -185,6 +187,17 @@ public class DatabaseRestoreService {
                         "Backup contains a foreign-key violation in table "
                                 + resultSet.getString("table") + ".");
             }
+        }
+    }
+
+    private void ensureAdminBootstrapStateTable(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS admin_bootstrap_state (
+                        id INTEGER PRIMARY KEY CHECK (id = 1),
+                        completed_at TIMESTAMP NOT NULL
+                    )
+                    """);
         }
     }
 
