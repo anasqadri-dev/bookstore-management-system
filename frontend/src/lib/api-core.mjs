@@ -57,7 +57,7 @@ async function readEnvelope(response, operation) {
     return envelope.data;
 }
 
-export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch }) {
+export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch, onUnauthorized = () => {} }) {
     const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
 
     async function request(path, options = {}) {
@@ -110,6 +110,10 @@ export function createApiClient({ baseUrl, fetchImpl = globalThis.fetch }) {
                 "Cannot connect to the bookstore server. Make sure the local backend is running and try again.",
                 { code: "NETWORK_ERROR" },
             );
+        }
+
+        if (response.status === 401 && path !== "/api/auth/login") {
+            onUnauthorized();
         }
 
         return readEnvelope(response, `${method} ${path}`);
