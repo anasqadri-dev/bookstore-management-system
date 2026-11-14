@@ -62,6 +62,10 @@ jobs:
         run: npm install --no-audit --no-fund
         working-directory: desktop
 
+      - name: Audit Electron packaging dependencies
+        run: npm audit --audit-level=high
+        working-directory: desktop
+
       - name: Test desktop process lifecycle and security helpers
         run: npm test
         working-directory: desktop
