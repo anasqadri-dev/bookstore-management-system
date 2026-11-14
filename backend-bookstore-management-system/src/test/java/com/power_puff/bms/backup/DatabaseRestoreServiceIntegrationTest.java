@@ -13,6 +13,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +43,7 @@ class DatabaseRestoreServiceIntegrationTest {
         String existingSupplier = "Restore Existing " + UUID.randomUUID();
         String laterSupplier = "Restore Later " + UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO suppliers (name) VALUES (?)", existingSupplier);
+        Map<String, Long> expectedTableCounts = currentBusinessTableCounts();
 
         Path backupPath = temporaryDirectory.resolve("before-change.db");
         DatabaseBackupResult backup = backupService.createBackup(backupPath.toString());
@@ -52,6 +55,8 @@ class DatabaseRestoreServiceIntegrationTest {
 
         assertEquals(0, countSupplier(laterSupplier));
         assertEquals(1, countSupplier(existingSupplier));
+        assertEquals(expectedTableCounts, restored.tableCounts(),
+                "Restore must preserve row counts for every business table");
         assertTrue(restored.productCount() >= 0);
         assertTrue(restored.saleCount() >= 0);
         assertEquals("before-change.db", restored.fileName());
@@ -90,6 +95,19 @@ class DatabaseRestoreServiceIntegrationTest {
 
         assertEquals(1, countSupplier(marker));
         jdbcTemplate.update("DELETE FROM suppliers WHERE name = ?", marker);
+    }
+
+    private Map<String, Long> currentBusinessTableCounts() {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (String table : java.util.List.of(
+                "users", "products", "sales", "sale_items", "schools",
+                "school_orders", "school_order_items", "suppliers",
+                "purchase_orders", "purchase_order_items", "activity_logs")) {
+            Long count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM " + table, Long.class);
+            counts.put(table, count);
+        }
+        return Map.copyOf(counts);
     }
 
     private int countSupplier(String name) {
