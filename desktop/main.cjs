@@ -256,6 +256,7 @@ function createMainWindow() {
             sandbox: true,
             webSecurity: true,
             allowRunningInsecureContent: false,
+            devTools: !app.isPackaged,
         },
     });
 
