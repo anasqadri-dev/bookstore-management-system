@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld("bmsDesktop", Object.freeze({
     platform: process.platform,
     chooseBackupDestination: () => ipcRenderer.invoke("bms:choose-backup-destination"),
     chooseBackupFile: () => ipcRenderer.invoke("bms:choose-backup-file"),
+    printReceipt: () => ipcRenderer.invoke("bms:print-receipt"),
 }));
