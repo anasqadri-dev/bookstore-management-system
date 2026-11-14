@@ -5,6 +5,7 @@ import com.power_puff.bms.user.dto.LoginRequest;
 import com.power_puff.bms.user.entity.User;
 import com.power_puff.bms.user.entity.UserRole;
 import com.power_puff.bms.user.service.UserAccountService;
+import com.power_puff.bms.security.ActiveSessionRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -44,7 +45,8 @@ class AuthControllerTest {
         when(userAccountService.findActiveUserByUsername("staff1")).thenReturn(staff);
 
         AuthController controller = new AuthController(
-                authenticationManager, contextRepository, userAccountService, activityLogService);
+                authenticationManager, contextRepository, userAccountService, activityLogService,
+                new ActiveSessionRegistry());
 
         var response = controller.login(new LoginRequest("staff1", "StrongPass123"),
                 new MockHttpServletRequest(), new MockHttpServletResponse());
@@ -66,7 +68,7 @@ class AuthControllerTest {
                 authenticationManager,
                 mock(SecurityContextRepository.class),
                 mock(UserAccountService.class),
-                mock(ActivityLogService.class));
+                mock(ActivityLogService.class), new ActiveSessionRegistry());
 
         assertThrows(BadCredentialsException.class, () -> controller.login(
                 new LoginRequest("staff1", "wrong-password"),
@@ -82,7 +84,8 @@ class AuthControllerTest {
 
         AuthController controller = new AuthController(
                 mock(AuthenticationManager.class), contextRepository,
-                mock(UserAccountService.class), mock(ActivityLogService.class));
+                mock(UserAccountService.class), mock(ActivityLogService.class),
+                new ActiveSessionRegistry());
 
         var result = controller.logout(request, response);
 
